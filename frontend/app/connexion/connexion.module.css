@@ -1,0 +1,277 @@
+
+.container {
+  min-height: 100vh;
+  width: 100%;
+  background: #f4f8f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 35px 20px;
+  position: relative;
+  overflow: hidden;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.container::before {
+  content: "";
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  top: -350px;
+  right: -180px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.09);
+  pointer-events: none;
+}
+
+.container::after {
+  content: "";
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  bottom: -250px;
+  left: -150px;
+  border-radius: 50%;
+  background: rgba(22, 131, 74, 0.06);
+  pointer-events: none;
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  background: #ffffff;
+  padding: 55px 45px;
+  border-radius: 24px;
+  box-shadow: 0 25px 80px rgba(24, 59, 43, 0.10);
+  position: relative;
+  z-index: 1;
+  animation: appear 0.7s ease both;
+  border: 1px solid rgba(22, 131, 74, 0.05);
+}
+
+.card::before {
+  content: "";
+  display: block;
+  width: 55px;
+  height: 55px;
+  margin-bottom: 25px;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #16834a, #0e6839);
+  box-shadow: 0 8px 18px rgba(22, 131, 74, 0.2);
+}
+
+.card h1 {
+  color: #183b2b;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.card > p {
+  margin-top: 12px;
+  margin-bottom: 32px;
+  color: #89958e;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.formGroup label {
+  color: #344b3e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.formGroup > input,
+.passwordContainer input {
+  width: 100%;
+  min-width: 0;
+  height: 55px;
+  padding: 0 16px;
+  border: 1px solid #e0e8e2;
+  border-radius: 11px;
+  outline: none;
+  background: #fafcfb;
+  color: #183b2b;
+  font-size: 13px;
+  transition: all 0.25s ease;
+}
+
+.formGroup > input:focus,
+.passwordContainer:focus-within {
+  border-color: #16834a;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(22, 131, 74, 0.09);
+}
+
+.formGroup input::placeholder {
+  color: #adb8b0;
+}
+
+.passwordContainer {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 55px;
+  border: 1px solid #e0e8e2;
+  border-radius: 11px;
+  background: #fafcfb;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.passwordContainer input {
+  flex: 1;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  border-radius: 0;
+}
+
+.passwordContainer input:focus {
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+.passwordContainer button {
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: #16834a;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.passwordContainer button:hover {
+  color: #0d5c32;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  padding: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 12px;
+  line-height: 1.5;
+  animation: appear 0.3s ease;
+}
+
+.submitButton {
+  width: 100%;
+  min-height: 55px;
+  margin-top: 7px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #16834a, #0e6839);
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 9px 20px rgba(22, 131, 74, 0.19);
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 13px 25px rgba(22, 131, 74, 0.27);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.submitButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.footer {
+  margin-top: 32px;
+  padding-top: 25px;
+  border-top: 1px solid #edf0ed;
+  text-align: center;
+}
+
+.footer p {
+  color: #849088;
+  font-size: 12px;
+}
+
+.footer a {
+  display: inline-block;
+  margin-left: 5px;
+  color: #16834a;
+  font-weight: 800;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer a:hover {
+  color: #0c5d32;
+  text-decoration: underline;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px 13px;
+  }
+
+  .card {
+    padding: 40px 25px;
+    border-radius: 20px;
+  }
+
+  .card h1 {
+    font-size: 30px;
+  }
+
+  .card > p {
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .error {
+    animation: none;
+  }
+
+  .submitButton,
+  .formGroup input,
+  .passwordContainer,
+  .footer a {
+    transition: none;
+  }
+}

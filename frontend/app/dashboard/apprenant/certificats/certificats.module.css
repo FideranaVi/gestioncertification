@@ -1,0 +1,1080 @@
+
+/* =====================================
+   GLOBAL PAGE
+===================================== */
+
+.page {
+  min-height: 100vh;
+  padding: 38px 32px 45px;
+  background: #f3f8f5;
+  color: #173d2b;
+}
+
+.container {
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+/* =====================================
+   HEADER
+===================================== */
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  margin-bottom: 32px;
+}
+
+.headerContent {
+  max-width: 700px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 13px;
+  color: #168650;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 2px;
+}
+
+.header h1 {
+  margin: 0;
+  color: #153e2b;
+  font-size: 35px;
+  font-weight: 850;
+  letter-spacing: -1.3px;
+}
+
+.header h1 span {
+  color: #18945a;
+}
+
+.header p {
+  max-width: 570px;
+  margin: 11px 0 0;
+  color: #7b8e82;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.backButton,
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 17px;
+  border: 1px solid #d7e7dc;
+  border-radius: 11px;
+  background: #ffffff;
+  color: #26784c;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.backButton:hover,
+.refreshButton:hover {
+  border-color: #168650;
+  background: #168650;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.backButton span {
+  font-size: 18px;
+}
+
+/* =====================================
+   NOTIFICATIONS
+===================================== */
+
+.error,
+.success {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.error {
+  border: 1px solid #f2cccc;
+  background: #fff2f2;
+  color: #bd3737;
+}
+
+.success {
+  border: 1px solid #bfe6cd;
+  background: #eaf8ef;
+  color: #177c47;
+}
+
+.error span,
+.success span {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  font-weight: 900;
+}
+
+/* =====================================
+   SUMMARY BANNER
+===================================== */
+
+.summary {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  min-height: 195px;
+  padding: 30px 36px;
+  margin-bottom: 43px;
+  overflow: hidden;
+  border-radius: 21px;
+  background: linear-gradient(
+    115deg,
+    #104c31 0%,
+    #117344 50%,
+    #19975b 100%
+  );
+  box-shadow: 0 12px 30px rgba(19, 104, 59, 0.13);
+}
+
+.summaryLeft {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  max-width: 700px;
+}
+
+.summaryIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 67px;
+  height: 67px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #f5d990;
+  font-size: 35px;
+}
+
+.summaryLabel {
+  display: block;
+  margin-bottom: 10px;
+  color: #bce9cd;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 2px;
+}
+
+.summaryLeft h2 {
+  max-width: 510px;
+  margin: 0;
+  color: white;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.summaryLeft p {
+  max-width: 500px;
+  margin: 10px 0 0;
+  color: #d1edda;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.summaryStat {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 175px;
+  padding: 19px 25px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.summaryStat span {
+  color: #d0efdb;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.summaryStat strong {
+  margin: 5px 0;
+  font-size: 43px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.summaryStat small {
+  color: #c0e4ce;
+  font-size: 10px;
+}
+
+.summaryDecoration {
+  position: absolute;
+  right: 200px;
+  top: -95px;
+  color: rgba(255, 255, 255, 0.055);
+  font-size: 270px;
+  pointer-events: none;
+}
+
+/* =====================================
+   SECTION HEADING
+===================================== */
+
+.section {
+  width: 100%;
+}
+
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.sectionEyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #19925a;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.7px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  color: #173f2b;
+  font-size: 24px;
+  font-weight: 850;
+}
+
+.sectionHeading p {
+  margin: 7px 0 0;
+  color: #83938a;
+  font-size: 13px;
+}
+
+.countBadge {
+  padding: 10px 15px;
+  border: 1px solid #d4e9da;
+  border-radius: 30px;
+  background: #eaf5ed;
+  color: #16814a;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* =====================================
+   CERTIFICATE GRID
+===================================== */
+
+.certificateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 25px;
+  align-items: start;
+}
+
+.certificateCard {
+  overflow: hidden;
+  border: 1px solid #e0ebe3;
+  border-radius: 19px;
+  background: #ffffff;
+  box-shadow: 0 5px 20px rgba(26, 68, 43, 0.055);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.certificateCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(26, 91, 53, 0.12);
+}
+
+/* =====================================
+   CERTIFICATE PREVIEW
+===================================== */
+
+.certificatePreview {
+  position: relative;
+  padding: 16px;
+  background: #edf5ee;
+}
+
+.certificateBorder {
+  position: relative;
+  min-height: 340px;
+  padding: 20px 23px;
+  overflow: hidden;
+  border: 5px double #b99a50;
+  outline: 1px solid #e1d1a7;
+  outline-offset: -12px;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      #ffffff 0%,
+      #fcfff9 65%,
+      #f0f6eb 100%
+    );
+}
+
+.certificateBorder::before,
+.certificateBorder::after {
+  position: absolute;
+  content: "✦";
+  color: rgba(188, 153, 76, 0.1);
+  pointer-events: none;
+}
+
+.certificateBorder::before {
+  top: 45px;
+  left: 15px;
+  font-size: 110px;
+}
+
+.certificateBorder::after {
+  right: 15px;
+  bottom: 25px;
+  font-size: 110px;
+}
+
+/* PREVIEW TOP */
+
+.previewTop {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brandIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d8bd7c;
+  border-radius: 50%;
+  background: #fffaf0;
+  color: #b08b40;
+  font-size: 23px;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand strong {
+  color: #17663d;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.brand small {
+  margin-top: 3px;
+  color: #9a8a64;
+  font-size: 8px;
+  letter-spacing: 3px;
+}
+
+.medal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  border: 2px solid #c3a154;
+  border-radius: 50%;
+  background: #fff9eb;
+  color: #b8974c;
+  font-size: 25px;
+}
+
+/* PREVIEW CONTENT */
+
+.previewContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 12px 20px;
+  text-align: center;
+}
+
+.previewEyebrow {
+  color: #a68a4b;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 3px;
+}
+
+.previewContent h3 {
+  margin: 9px 0 12px;
+  color: #174d31;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+.previewContent p {
+  margin: 7px 0;
+  color: #87958b;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.studentName {
+  display: block;
+  max-width: 100%;
+  margin: 10px 0;
+  color: #237648;
+  font-family: Georgia, serif;
+  font-size: 19px;
+  font-style: italic;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.goldLine {
+  width: 100px;
+  height: 2px;
+  margin: 3px auto 8px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #c7a354,
+    transparent
+  );
+}
+
+.previewContent h4 {
+  max-width: 100%;
+  margin: 6px 0 0;
+  color: #174d31;
+  font-family: Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* PREVIEW BOTTOM */
+
+.previewBottom {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-top: 13px;
+  border-top: 1px solid #e8ddc2;
+}
+
+.previewBottom > div:not(.seal) {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.previewBottom strong {
+  color: #55785c;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.previewBottom span {
+  color: #9c987f;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.seal {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border: 2px dashed #c4a45c;
+  border-radius: 50%;
+  background: #fffaf0;
+  color: #b38e41;
+}
+
+.seal span {
+  color: #a98740;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.seal small {
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+/* =====================================
+   CERTIFICATE INFORMATION
+===================================== */
+
+.certificateInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 19px;
+  padding: 20px 22px 22px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 7px;
+  color: #91a096;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 1.4px;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  color: #214b34;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  flex-shrink: 0;
+  border: 1px solid #ccebd6;
+  border-radius: 30px;
+  background: #eaf8ef;
+  color: #17824a;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px 13px;
+  padding: 16px;
+  border: 1px solid #e6eee7;
+  border-radius: 13px;
+  background: #f8fbf8;
+}
+
+.infoItem {
+  min-width: 0;
+}
+
+.infoItem strong {
+  display: block;
+  color: #345a43;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.statusInfo {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #f3f7ed;
+  color: #738448;
+  font-size: 11px;
+}
+
+/* =====================================
+   DOWNLOAD BUTTON
+===================================== */
+
+.downloadButton {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 15px;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #116b3d, #1b9a5b);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 5px 13px rgba(20, 126, 70, 0.14);
+  transition: all 0.25s ease;
+}
+
+.downloadButton > span:first-child {
+  font-size: 19px;
+}
+
+.downloadButton:hover:not(:disabled) {
+  background: linear-gradient(110deg, #0e5934, #147b49);
+  box-shadow: 0 8px 18px rgba(20, 126, 70, 0.22);
+  transform: translateY(-2px);
+}
+
+.downloadButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.buttonSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.downloadHint {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: -9px 0 0;
+  color: #8b9b90;
+  font-size: 10px;
+}
+
+.downloadHint span {
+  color: #20935a;
+  font-weight: 900;
+}
+
+/* =====================================
+   EMPTY STATE
+===================================== */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 350px;
+  padding: 40px 25px;
+  border: 1px dashed #bcdcc5;
+  border-radius: 19px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 82px;
+  height: 82px;
+  margin-bottom: 20px;
+  border-radius: 25px;
+  background: #eaf6ed;
+  color: #188950;
+}
+
+.emptyIcon span {
+  font-size: 43px;
+}
+
+.empty h3 {
+  margin: 0 0 12px;
+  color: #1c5235;
+  font-size: 19px;
+  font-weight: 850;
+}
+
+.empty p {
+  max-width: 490px;
+  margin: 0 0 24px;
+  color: #829289;
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.primaryButton {
+  padding: 13px 22px;
+  border: none;
+  border-radius: 11px;
+  background: #168650;
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.primaryButton:hover {
+  background: #105f39;
+  transform: translateY(-2px);
+}
+
+/* =====================================
+   FOOTER NAVIGATION
+===================================== */
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 23px 25px;
+  margin-top: 43px;
+  border: 1px solid #dcebe0;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.footer > div {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.footerIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 13px;
+  background: #eaf6ed;
+  color: #188b50;
+  font-size: 24px;
+}
+
+.footer strong {
+  color: #28563a;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.footer p {
+  margin: 5px 0 0;
+  color: #84958a;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.footerButton {
+  min-height: 43px;
+  padding: 0 17px;
+  border: 1px solid #cfe4d5;
+  border-radius: 10px;
+  background: #f1f8f3;
+  color: #187d49;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+}
+
+.footerButton:hover {
+  border-color: #168650;
+  background: #168650;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* =====================================
+   COPYRIGHT
+===================================== */
+
+.copyright {
+  padding-top: 23px;
+  color: #9aaa9f;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* =====================================
+   LOADING
+===================================== */
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 65vh;
+  text-align: center;
+}
+
+.loadingContainer h3 {
+  margin: 20px 0 6px;
+  color: #245c3a;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.loadingContainer p {
+  margin: 0;
+  color: #89998e;
+  font-size: 12px;
+}
+
+.spinner {
+  width: 47px;
+  height: 47px;
+  border: 4px solid #dceee2;
+  border-top-color: #15945c;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =====================================
+   RESPONSIVE TABLET
+===================================== */
+
+@media (max-width: 1000px) {
+  .certificateGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .certificateCard {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .summary {
+    align-items: flex-start;
+  }
+
+  .summaryDecoration {
+    right: 80px;
+  }
+}
+
+/* =====================================
+   RESPONSIVE MOBILE
+===================================== */
+
+@media (max-width: 650px) {
+  .page {
+    padding: 25px 15px 35px;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .header h1 {
+    font-size: 28px;
+  }
+
+  .headerActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .backButton,
+  .refreshButton {
+    width: 100%;
+    padding: 0 9px;
+    font-size: 10px;
+  }
+
+  .summary {
+    flex-direction: column;
+    padding: 24px 19px;
+    gap: 20px;
+  }
+
+  .summaryLeft {
+    align-items: flex-start;
+    gap: 13px;
+  }
+
+  .summaryIcon {
+    width: 47px;
+    height: 47px;
+    border-radius: 13px;
+    font-size: 25px;
+  }
+
+  .summaryLeft h2 {
+    font-size: 18px;
+  }
+
+  .summaryLeft p {
+    font-size: 11px;
+  }
+
+  .summaryStat {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .summaryDecoration {
+    right: 0;
+    top: -30px;
+    font-size: 180px;
+  }
+
+  .sectionHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sectionHeading h2 {
+    font-size: 21px;
+  }
+
+  .certificatePreview {
+    padding: 10px;
+  }
+
+  .certificateBorder {
+    min-height: 320px;
+    padding: 18px 15px;
+  }
+
+  .previewContent h3 {
+    font-size: 23px;
+  }
+
+  .previewContent h4 {
+    font-size: 15px;
+  }
+
+  .studentName {
+    font-size: 17px;
+  }
+
+  .certificateInfo {
+    padding: 17px 14px 19px;
+  }
+
+  .cardHeader h3 {
+    font-size: 14px;
+  }
+
+  .infoGrid {
+    gap: 14px 9px;
+    padding: 12px;
+  }
+
+  .infoItem strong {
+    font-size: 10px;
+  }
+
+  .verifiedBadge {
+    padding: 6px 8px;
+    font-size: 8px;
+  }
+
+  .downloadButton {
+    font-size: 11px;
+  }
+
+  .footer {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 19px 15px;
+  }
+
+  .footerButton {
+    width: 100%;
+  }
+
+  .copyright {
+    line-height: 1.7;
+  }
+}
+
+/* =====================================
+   ACCESSIBILITY
+===================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .buttonSpinner {
+    animation: none;
+  }
+
+  .certificateCard,
+  .downloadButton,
+  .backButton,
+  .refreshButton,
+  .footerButton,
+  .primaryButton {
+    transition: none;
+  }
+}

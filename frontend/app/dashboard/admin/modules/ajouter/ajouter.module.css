@@ -1,0 +1,264 @@
+
+.page {
+  min-height: 100vh;
+  padding: 40px 25px;
+  background: #f4f7f5;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.header {
+  max-width: 900px;
+  margin: 0 auto 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.dashboardLink {
+  display: inline-block;
+  margin-bottom: 22px;
+  color: #26824e;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.header h1 {
+  margin: 0 0 9px;
+  color: #203a2b;
+  font-size: 28px;
+}
+
+.header p {
+  margin: 0;
+  color: #87928a;
+  font-size: 14px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 41px;
+  padding: 0 17px;
+  color: #247747;
+  background: #e8f3eb;
+  border: 1px solid #d6e9dc;
+  border-radius: 7px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.backButton:hover {
+  background: #d8ebdf;
+}
+
+.formContainer {
+  max-width: 900px;
+  margin: auto;
+  padding: 32px;
+  background: white;
+  border: 1px solid #e8eee9;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(30, 65, 42, 0.045);
+}
+
+.formHeading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 30px;
+  padding-bottom: 23px;
+  border-bottom: 1px solid #edf1ed;
+}
+
+.formIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  color: #238653;
+  background: #eaf5ed;
+  font-size: 27px;
+}
+
+.formHeading h2 {
+  margin: 0 0 7px;
+  color: #263c2e;
+  font-size: 18px;
+}
+
+.formHeading p {
+  margin: 0;
+  color: #89948c;
+  font-size: 13px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.field label {
+  color: #34483a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  padding: 12px 14px;
+  color: #34483a;
+  background: white;
+  border: 1px solid #dfe7e1;
+  border-radius: 7px;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.field input,
+.field select {
+  height: 45px;
+}
+
+.field textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  border-color: #29945c;
+  box-shadow: 0 0 0 3px rgba(41, 148, 92, 0.1);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: #a1aaa4;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 23px;
+  border-top: 1px solid #edf1ed;
+}
+
+.cancelButton,
+.submitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 0 20px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.cancelButton {
+  color: #647168;
+  background: #f0f3f1;
+  border: 1px solid #e5eae6;
+}
+
+.cancelButton:hover {
+  background: #e4eae5;
+}
+
+.submitButton {
+  color: white;
+  background: #238653;
+  border: 1px solid #238653;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #176b40;
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error {
+  margin-bottom: 22px;
+  padding: 13px 16px;
+  color: #a52d2d;
+  background: #fff0f0;
+  border: 1px solid #f4cccc;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.loading {
+  padding: 40px;
+  color: #6c7c70;
+  text-align: center;
+  font-size: 14px;
+}
+
+.noFormation {
+  color: #c04b4b;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .page {
+    padding: 25px 15px;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .formContainer {
+    padding: 20px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+  }
+}

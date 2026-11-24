@@ -1,0 +1,361 @@
+.page,
+.loading {
+  --vert: #1b7546;
+  --vert-fonce: #145a36;
+  --vert-clair: #e8f4ed;
+  --or: #c4a45b;
+  --texte: #243f30;
+  --texte-doux: #68766c;
+  --bordure: #dce5df;
+  --fond: #f4f7f5;
+  --danger: #c0392b;
+  --succes: #1b7546;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 40px 24px 32px;
+  background:
+    radial-gradient(circle at top right, rgba(27, 117, 70, 0.08), transparent 40%),
+    var(--fond);
+  color: var(--texte);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.container {
+  width: 100%;
+  max-width: 860px;
+}
+
+/* ---------- Chargement ---------- */
+
+.loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fond);
+  color: var(--texte-doux);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.loading::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  border: 3px solid var(--bordure);
+  border-top-color: var(--vert);
+  border-radius: 50%;
+  animation: tourner 0.8s linear infinite;
+}
+
+@keyframes tourner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- En-tête ---------- */
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.subtitle {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--or);
+  margin-bottom: 8px;
+}
+
+.header h1 {
+  margin: 0 0 6px;
+  font-size: 30px;
+  line-height: 1.15;
+  color: var(--texte);
+}
+
+.header p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--texte-doux);
+}
+
+.backButton {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 10px 18px;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--vert);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  border-color: var(--vert);
+  background: var(--vert-clair);
+  transform: translateX(-2px);
+}
+
+/* ---------- Formulaire ---------- */
+
+.form {
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-top: 4px solid var(--vert);
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: 0 12px 40px rgba(36, 63, 48, 0.08);
+}
+
+.formHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 22px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--vert), var(--vert-fonce));
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(27, 117, 70, 0.3);
+}
+
+.formHeader h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  color: var(--texte);
+}
+
+.formHeader p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texte-doux);
+}
+
+/* ---------- Messages ---------- */
+
+.error,
+.success {
+  margin-bottom: 22px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.error {
+  border: 1px solid #f0c4be;
+  border-left: 4px solid var(--danger);
+  background: #fdf1ef;
+  color: var(--danger);
+}
+
+.success {
+  border: 1px solid #bfe0cd;
+  border-left: 4px solid var(--succes);
+  background: var(--vert-clair);
+  color: var(--vert-fonce);
+}
+
+/* ---------- Champs ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texte);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--bordure);
+  border-radius: 10px;
+  background: #fafcfb;
+  color: var(--texte);
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-sizing: border-box;
+}
+
+.field input::placeholder {
+  color: #a3aea7;
+}
+
+.field input:hover,
+.field select:hover {
+  border-color: #b9c8bf;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--vert);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(27, 117, 70, 0.14);
+}
+
+.field select {
+  cursor: pointer;
+}
+
+/* ---------- Section mot de passe ---------- */
+
+.passwordSection {
+  margin-top: 28px;
+  padding: 20px 22px 24px;
+  border: 1px dashed var(--or);
+  border-radius: 12px;
+  background: #fbf7ec;
+}
+
+.passwordSection h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: #5f4c1c;
+}
+
+.passwordSection p {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  color: #7a6329;
+}
+
+.passwordSection .field input {
+  background: #fff;
+}
+
+/* ---------- Actions ---------- */
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--bordure);
+}
+
+.cancelButton,
+.submitButton {
+  height: 46px;
+  padding: 0 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton {
+  border: 1.5px solid var(--bordure);
+  background: #fff;
+  color: var(--texte-doux);
+}
+
+.cancelButton:hover {
+  border-color: #b9c8bf;
+  background: var(--fond);
+  color: var(--texte);
+}
+
+.submitButton {
+  border: none;
+  background: linear-gradient(135deg, var(--vert), var(--vert-fonce));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(27, 117, 70, 0.3);
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(27, 117, 70, 0.38);
+}
+
+.submitButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 720px) {
+  .page {
+    padding: 24px 14px 20px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header h1 {
+    font-size: 25px;
+  }
+
+  .form {
+    padding: 22px 18px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+  }
+}
