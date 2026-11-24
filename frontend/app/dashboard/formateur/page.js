@@ -28,7 +28,15 @@ import {
 } from "lucide-react";
 import styles from "./formateur.module.css";
 
-const API = "http://localhost:5000/api/formateur";
+// ✅ API Render / Local - ne pas mettre localhost en dur
+function obtenirBaseApi() {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const nettoye = String(base).replace(/\/$/, "");
+  // Si NEXT_PUBLIC_API_URL finit déjà par /api, on ne rajoute pas /api
+  if (nettoye.endsWith("/api")) return `${nettoye}/formateur`;
+  return `${nettoye}/api/formateur`;
+}
+const API = obtenirBaseApi();
 const INTERVALLE_TENTATIVES = 5000;
 const DELAI_HORS_LIGNE = 30000;
 
@@ -121,6 +129,73 @@ function obtenirUtilisateurDepuisToken() {
   } catch {
     return null;
   }
+}
+
+// ✅ NORMALISATION NOM - gère tous les formats du backend
+function normaliserUtilisateur(brut) {
+  if (!brut) return null;
+  // Le backend peut renvoyer { utilisateur: {...} } ou { formateur: {...} } ou direct {...}
+  const u = brut.utilisateur || brut.formateur || brut.user || brut.data || brut;
+  if (!u || typeof u !== "object") return null;
+
+  const prenom = u.prenom || u.firstName || u.firstname || "";
+  const nom = u.nom || u.lastName || u.lastname || u.name || "";
+  const nomCompletBrut = u.nomComplet || u.nom_complet || u.fullName || u.fullname || u.displayName || "";
+  const email = u.email || u.mail || u.adresseEmail || "";
+  const photo = u.photo || u.photoProfil || u.photo_profil || u.picture || u.avatar || u.image || "";
+
+  let nomComplet = "";
+  if (nomCompletBrut && nomCompletBrut.trim()) {
+    nomComplet = nomCompletBrut.trim();
+  } else if (prenom || nom) {
+    // Si nom contient déjà "Prenom Nom", on ne double pas
+    if (nom && prenom && nom.toLowerCase().includes(prenom.toLowerCase())) {
+      nomComplet = nom.trim();
+    } else if (prenom && nom) {
+      nomComplet = `${prenom} ${nom}`.trim();
+    } else {
+      nomComplet = (prenom || nom || "").trim();
+    }
+  }
+
+  return {
+    ...u,
+    prenom: prenom || "",
+    nom: nom || "",
+    nomComplet,
+    email,
+    photo,
+    picture: photo,
+    username: u.username || u.pseudo || "",
+    role: u.role || u.roleUtilisateur || "formateur",
+  };
+}
+
+// ✅ RECUPERE LE VRAI PROFIL DEPUIS LE BACKEND (pas seulement le token)
+async function recupererProfilFormateur(signal) {
+  // 1. On essaie le backend d'abord = vrai nom en base
+  const endpoints = ["/profil", "/me", "/profile"];
+  for (const ep of endpoints) {
+    try {
+      const data = await apiRequest(ep, { signal });
+      const normalise = normaliserUtilisateur(data);
+      if (normalise && (normalise.nomComplet || normalise.email)) return normalise;
+    } catch (e) {
+      if (e?.status === 401 || e?.status === 403) throw e;
+      // 404 = endpoint n'existe pas, on essaie le suivant
+      continue;
+    }
+  }
+  // 2. Fallback : localStorage (si connexion a sauvé l'utilisateur)
+  try {
+    const sauve = localStorage.getItem("utilisateur") || localStorage.getItem("user");
+    if (sauve) {
+      const normalise = normaliserUtilisateur(JSON.parse(sauve));
+      if (normalise && (normalise.nomComplet || normalise.email)) return normalise;
+    }
+  } catch {}
+  // 3. Dernier fallback : token JWT
+  return normaliserUtilisateur(obtenirUtilisateurDepuisToken());
 }
 
 function formaterDate(date) {
@@ -296,10 +371,14 @@ export default function FormateurDashboard() {
       router.replace("/connexion");
       return () => controller.abort();
     }
-    recupererDonnees(controller.signal)
-      .then((donnees) => {
+    // ✅ On charge profil + formations + modules en parallèle
+    Promise.all([
+      recupererProfilFormateur(controller.signal),
+      recupererDonnees(controller.signal),
+    ])
+      .then(([profil, donnees]) => {
         if (controller.signal.aborted) return;
-        setUtilisateur(obtenirUtilisateurDepuisToken());
+        setUtilisateur(profil);
         setFormations(donnees.formations);
         setModules(donnees.modules);
       })
@@ -360,11 +439,12 @@ export default function FormateurDashboard() {
   const formationsAvecModules = formations.filter((formation) => obtenirModules(formation.numFormation).length > 0).length;
   const formationsSansModules = formations.length - formationsAvecModules;
 
-  const nomFormateur = utilisateur?.prenom || utilisateur?.nom || utilisateur?.username || "Formateur";
-  const nomComplet = `${utilisateur?.nom || ""} ${utilisateur?.prenom || ""}`.trim() || nomFormateur;
+  // ✅ NOM FORMATEUR - vrai nom complet depuis backend, pas juste prénom
+  const nomComplet = utilisateur?.nomComplet || `${utilisateur?.prenom || ""} ${utilisateur?.nom || ""}`.trim() || utilisateur?.username || "Formateur";
+  const nomFormateur = nomComplet; // ✅ Avant c'était juste prenom, maintenant nom complet partout
   const emailFormateur = utilisateur?.email || utilisateur?.mail || "";
-  const initiale = String(nomFormateur).charAt(0).toUpperCase() || "F";
-  const photoAffichee = utilisateur?.photo || utilisateur?.picture || photoProfil;
+  const initiale = String(nomComplet || "F").charAt(0).toUpperCase() || "F";
+  const photoAffichee = photoProfil || utilisateur?.photo || utilisateur?.picture || "";
 
   const nombreEnLigne = tentatives.filter((tentative) => obtenirEtatTentative(tentative) === "en_ligne").length;
   const nombreHorsLigne = tentatives.filter((tentative) => obtenirEtatTentative(tentative) === "hors_ligne").length;
