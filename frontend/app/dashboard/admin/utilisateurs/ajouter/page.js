@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, UserPlus, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import styles from "./ajouter.module.css";
 
 const API = "http://localhost:5000/api/utilisateur";
@@ -35,7 +35,7 @@ export default function AjouterUtilisateurPage() {
   const [erreur, setErreur] = useState("");
 
   function modifierChamp(e) {
-    setFormulaire(prev => ({
+    setFormulaire((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
@@ -94,19 +94,21 @@ export default function AjouterUtilisateurPage() {
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>ADMINISTRATION / UTILISATEURS</span>
+          <span className={styles.eyebrow}>Administration / Utilisateurs</span>
           <h1>Ajouter un utilisateur</h1>
           <p>Créez un nouveau compte sur la plateforme Learning Pro.</p>
         </div>
 
         <Link href="/dashboard/admin/utilisateurs" className={styles.backButton}>
-          ← Retour à la liste
+          <ArrowLeft size={17} /> Retour à la liste
         </Link>
       </header>
 
       <section className={styles.formCard}>
         <div className={styles.formHeader}>
-          <div className={styles.formIcon}>＋</div>
+          <div className={styles.formIcon}>
+            <UserPlus size={22} />
+          </div>
           <div>
             <h2>Informations du compte</h2>
             <p>Remplissez les informations du nouvel utilisateur.</p>
@@ -184,7 +186,8 @@ export default function AjouterUtilisateurPage() {
                   autoComplete="new-password"
                   required
                 />
-                <button type="button" onClick={() => setAfficherPwd(v => !v)}>
+                <button type="button" onClick={() => setAfficherPwd((v) => !v)}>
+                  {afficherPwd ? <EyeOff size={17} /> : <Eye size={17} />}
                   {afficherPwd ? "Masquer" : "Afficher"}
                 </button>
               </div>
@@ -197,20 +200,17 @@ export default function AjouterUtilisateurPage() {
                   id="confirmation"
                   type={afficherConfirmation ? "text" : "password"}
                   value={confirmation}
-                  onChange={e => setConfirmation(e.target.value)}
+                  onChange={(e) => setConfirmation(e.target.value)}
                   placeholder="Répétez le mot de passe"
                   autoComplete="new-password"
                   required
                 />
-                <button type="button" onClick={() => setAfficherConfirmation(v => !v)}>
+                <button type="button" onClick={() => setAfficherConfirmation((v) => !v)}>
+                  {afficherConfirmation ? <EyeOff size={17} /> : <Eye size={17} />}
                   {afficherConfirmation ? "Masquer" : "Afficher"}
                 </button>
               </div>
             </div>
-          </div>
-
-          <div className={styles.note}>
-            <strong>Information :</strong> le mot de passe sera sécurisé et chiffré par le backend.
           </div>
 
           <div className={styles.formActions}>
@@ -218,6 +218,7 @@ export default function AjouterUtilisateurPage() {
               Annuler
             </Link>
             <button type="submit" className={styles.submitButton} disabled={enregistrement}>
+              <ShieldCheck size={17} />
               {enregistrement ? "Création en cours..." : "Créer l'utilisateur"}
             </button>
           </div>

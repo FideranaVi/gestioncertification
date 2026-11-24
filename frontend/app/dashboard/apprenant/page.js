@@ -1,8 +1,23 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import {
+  LayoutDashboard,
+  BookOpen,
+  Layers,
+  FileText,
+  CheckCircle2,
+  Trophy,
+  BarChart3,
+  GraduationCap,
+  ArrowRight,
+  User,
+  Mail,
+  LogOut,
+  Camera,
+  X
+} from "lucide-react";
 import styles from "./apprenant.module.css";
 
 const API = "http://localhost:5000/api/apprenant";
@@ -11,6 +26,17 @@ export default function ApprenantDashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
+
+  // Profil
+  const [showProfil, setShowProfil] = useState(false);
+
+  // ✅ CORRIGÉ : lecture de localStorage directement dans useState, pas dans useEffect
+  const [photoProfil, setPhotoProfil] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("photoProfil") || "";
+  });
+
+  const fileRef = useRef(null);
 
   useEffect(() => {
     const chargerDashboard = async () => {
@@ -51,6 +77,29 @@ export default function ApprenantDashboard() {
     chargerDashboard();
   }, []);
 
+  // Changer la photo de profil
+  const changerPhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result;
+      setPhotoProfil(url);
+      localStorage.setItem("photoProfil", url);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const deconnecter = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("utilisateur");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("utilisateur");
+    sessionStorage.removeItem("user");
+    window.location.href = "/connexion";
+  };
+
   if (chargement) {
     return (
       <div className={styles.loading}>
@@ -81,40 +130,42 @@ export default function ApprenantDashboard() {
 
   const nomComplet = `${utilisateur.nom || ""} ${utilisateur.prenom || ""}`.trim();
   const initiale = utilisateur.nom?.charAt(0)?.toUpperCase() || "A";
+  // Photo Google si elle existe, sinon photo choisie, sinon initiale
+  const photoAffichee = utilisateur.photo || utilisateur.picture || photoProfil;
 
   const cartes = [
     {
       titre: "Formations",
       valeur: statistiques.nombreFormations ?? 0,
-      icone: "📚",
+      icone: <BookOpen size={22} />,
       couleur: "green",
       lien: "/dashboard/apprenant/formations"
     },
     {
       titre: "Modules",
       valeur: statistiques.nombreModules ?? 0,
-      icone: "📖",
+      icone: <Layers size={22} />,
       couleur: "blue",
       lien: "/dashboard/apprenant/formations"
     },
     {
       titre: "Quiz",
       valeur: statistiques.nombreQuiz ?? 0,
-      icone: "📝",
+      icone: <FileText size={22} />,
       couleur: "orange",
       lien: "/dashboard/apprenant/quiz"
     },
     {
       titre: "Quiz terminés",
       valeur: statistiques.tentativesTerminees ?? 0,
-      icone: "✓",
+      icone: <CheckCircle2 size={22} />,
       couleur: "purple",
       lien: "/dashboard/apprenant/resultats"
     },
     {
       titre: "Certificats",
       valeur: statistiques.nombreCertificats ?? 0,
-      icone: "🏆",
+      icone: <Trophy size={22} />,
       couleur: "gold",
       lien: "/dashboard/apprenant/certificats"
     }
@@ -140,34 +191,44 @@ export default function ApprenantDashboard() {
 
         <nav className={styles.navigation}>
           <Link href="/dashboard/apprenant" className={`${styles.navLink} ${styles.active}`}>
-            <span>▦</span> Tableau de bord
+            <LayoutDashboard size={20} /> Tableau de bord
           </Link>
 
           <Link href="/dashboard/apprenant/formations" className={styles.navLink}>
-            <span>📚</span> Mes formations
+            <BookOpen size={20} /> Mes formations
           </Link>
 
           <Link href="/dashboard/apprenant/quiz" className={styles.navLink}>
-            <span>📝</span> Quiz
+            <FileText size={20} /> Quiz
           </Link>
 
           <Link href="/dashboard/apprenant/resultats" className={styles.navLink}>
-            <span>📊</span> Mes résultats
+            <BarChart3 size={20} /> Mes résultats
           </Link>
 
           <Link href="/dashboard/apprenant/certificats" className={styles.navLink}>
-            <span>🏆</span> Mes certificats
+            <Trophy size={20} /> Mes certificats
+          </Link>
+
+          <Link href="/dashboard/apprenant/profil" className={styles.navLink}>
+            <User size={20} /> Mon profil
           </Link>
         </nav>
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.profileMini}>
-            <div className={styles.avatar}>{initiale}</div>
-            <div className={styles.profileText}>
-              <strong>{nomComplet || "Apprenant"}</strong>
-              <small>Apprenant</small>
+          <button type="button" className={styles.profileMiniButton} onClick={() => setShowProfil(true)}>
+            <div className={styles.profileMini}>
+              {photoAffichee ? (
+                <img src={photoAffichee} alt="Profil" className={styles.avatarImg} />
+              ) : (
+                <div className={styles.avatar}>{initiale}</div>
+              )}
+              <div className={styles.profileText}>
+                <strong>{nomComplet || "Apprenant"}</strong>
+                <small>Apprenant • Voir mon profil</small>
+              </div>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
 
@@ -178,13 +239,19 @@ export default function ApprenantDashboard() {
             <p>Votre espace d&apos;apprentissage</p>
           </div>
 
-          <div className={styles.topProfile}>
-            <div className={styles.avatar}>{initiale}</div>
-            <div className={styles.profileText}>
-              <strong>{nomComplet || "Apprenant"}</strong>
-              <small>Apprenant</small>
+          <button type="button" className={styles.topProfileButton} onClick={() => setShowProfil(true)}>
+            <div className={styles.topProfile}>
+              {photoAffichee ? (
+                <img src={photoAffichee} alt="Profil" className={styles.avatarImg} />
+              ) : (
+                <div className={styles.avatar}>{initiale}</div>
+              )}
+              <div className={styles.profileText}>
+                <strong>{nomComplet || "Apprenant"}</strong>
+                <small>Apprenant</small>
+              </div>
             </div>
-          </div>
+          </button>
         </header>
 
         <section className={styles.content}>
@@ -200,11 +267,13 @@ export default function ApprenantDashboard() {
                 href="/dashboard/apprenant/formations"
                 className={styles.primaryButton}
               >
-                Découvrir les formations <span>→</span>
+                Découvrir les formations <ArrowRight size={18} />
               </Link>
             </div>
 
-            <div className={styles.welcomeIllustration}>🎓</div>
+            <div className={styles.welcomeIllustration}>
+              <GraduationCap size={72} />
+            </div>
           </section>
 
           <div className={styles.sectionHeader}>
@@ -228,7 +297,7 @@ export default function ApprenantDashboard() {
                   <p>{carte.titre}</p>
                   <h2>{carte.valeur}</h2>
                 </div>
-                <span className={styles.statArrow}>→</span>
+                <span className={styles.statArrow}><ArrowRight size={16} /></span>
               </Link>
             ))}
           </div>
@@ -241,7 +310,7 @@ export default function ApprenantDashboard() {
                   <p>Découvrez les formations proposées.</p>
                 </div>
                 <Link href="/dashboard/apprenant/formations">
-                  Voir tout →
+                  Voir tout <span>→</span>
                 </Link>
               </div>
 
@@ -252,7 +321,7 @@ export default function ApprenantDashboard() {
                       className={styles.formationItem}
                       key={formation.numFormation ?? index}
                     >
-                      <div className={styles.formationIcon}>📘</div>
+                      <div className={styles.formationIcon}><FileText size={20} /></div>
                       <div className={styles.formationInfo}>
                         <strong>{formation.titre}</strong>
                         <p>
@@ -264,7 +333,7 @@ export default function ApprenantDashboard() {
                 </div>
               ) : (
                 <div className={styles.emptyState}>
-                  <span>📚</span>
+                  <span className={styles.emptyIcon}><BookOpen size={44} /></span>
                   <strong>Aucune formation disponible</strong>
                   <p>Les nouvelles formations apparaîtront ici.</p>
                 </div>
@@ -278,7 +347,7 @@ export default function ApprenantDashboard() {
                   <p>Vos dernières tentatives de quiz.</p>
                 </div>
                 <Link href="/dashboard/apprenant/resultats">
-                  Voir tout →
+                  Voir tout <span>→</span>
                 </Link>
               </div>
 
@@ -289,7 +358,7 @@ export default function ApprenantDashboard() {
                       className={styles.activityItem}
                       key={tentative.idTentative ?? index}
                     >
-                      <div className={styles.activityIcon}>📝</div>
+                      <div className={styles.activityIcon}><FileText size={20} /></div>
                       <div className={styles.activityInfo}>
                         <strong>Quiz #{tentative.idQuiz ?? "—"}</strong>
                         <p>
@@ -308,7 +377,7 @@ export default function ApprenantDashboard() {
                 </div>
               ) : (
                 <div className={styles.emptyState}>
-                  <span>📝</span>
+                  <span className={styles.emptyIcon}><FileText size={44} /></span>
                   <strong>Aucune activité récente</strong>
                   <p>Vos tentatives de quiz apparaîtront ici.</p>
                 </div>
@@ -321,6 +390,72 @@ export default function ApprenantDashboard() {
           </footer>
         </section>
       </main>
+
+      {/* POPUP PROFIL */}
+      {showProfil && (
+        <div className={styles.profilOverlay} onClick={() => setShowProfil(false)}>
+          <div className={styles.profilModal} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className={styles.profilClose} onClick={() => setShowProfil(false)}>
+              <X size={20} />
+            </button>
+
+            <div className={styles.profilHeader}>
+              <div className={styles.profilPhotoWrap}>
+                {photoAffichee ? (
+                  <img src={photoAffichee} alt="Profil" className={styles.profilPhoto} />
+                ) : (
+                  <div className={styles.profilAvatar}>{initiale}</div>
+                )}
+                <button type="button" className={styles.profilCamera} onClick={() => fileRef.current?.click()}>
+                  <Camera size={16} />
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={changerPhoto} />
+              </div>
+              <h2>{nomComplet || "Apprenant"}</h2>
+              <span className={styles.profilRole}>Apprenant</span>
+            </div>
+
+            <div className={styles.profilInfos}>
+              <div className={styles.profilRow}>
+                <User size={18} />
+                <div>
+                  <small>Nom complet</small>
+                  <strong>{nomComplet || "Non renseigné"}</strong>
+                </div>
+              </div>
+              <div className={styles.profilRow}>
+                <Mail size={18} />
+                <div>
+                  <small>Adresse email</small>
+                  <strong>{utilisateur.email || "Non renseignée"}</strong>
+                </div>
+              </div>
+              <div className={styles.profilRow}>
+                <GraduationCap size={18} />
+                <div>
+                  <small>Rôle</small>
+                  <strong>Apprenant</strong>
+                </div>
+              </div>
+              <div className={styles.profilRow}>
+                <Trophy size={18} />
+                <div>
+                  <small>Certificats obtenus</small>
+                  <strong>{statistiques.nombreCertificats ?? 0}</strong>
+                </div>
+              </div>
+            </div>
+
+            <Link href="/dashboard/apprenant/profil" className={styles.profilFullButton}>
+              Voir mon profil complet
+            </Link>
+
+            <button type="button" className={styles.profilLogout} onClick={deconnecter}>
+              <LogOut size={18} /> Se déconnecter
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

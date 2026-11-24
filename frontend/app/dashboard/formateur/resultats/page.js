@@ -3,6 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  BarChart3,
+  Star,
+  CheckCircle2,
+  GraduationCap,
+  Search,
+  LogOut,
+  ArrowLeft,
+  Trophy,
+  XCircle,
+} from "lucide-react";
 import styles from "./resultats.module.css";
 
 const API = "http://localhost:5000/api/formateur";
@@ -29,8 +41,6 @@ function normaliserEvaluation(e) {
   const tentative = e.tentative || {};
   const apprenant = tentative.apprenant || {};
   const quiz = tentative.quiz || {};
-
-  // ✅ CORRECTION : "module" -> "moduleInfo" (mot réservé Next.js)
   const moduleInfo = quiz.module || {};
   const formation = moduleInfo.formation || {};
 
@@ -38,7 +48,7 @@ function normaliserEvaluation(e) {
   const seuil = Number(quiz.seuilReussite ?? 10);
 
   return {
-    id: e.codeEvaluation, // ✅ clé unique réelle
+    id: e.codeEvaluation,
     prenom: apprenant.prenom || "",
     nom: apprenant.nom || "",
     email: apprenant.email || "",
@@ -49,7 +59,7 @@ function normaliserEvaluation(e) {
     score,
     noteMax: 20,
     seuil,
-    statut: e.resultat || (score >= seuil ? "reussi" : "echoue"), // ✅ e.resultat = "reussi" | "echoue"
+    statut: e.resultat || (score >= seuil ? "reussi" : "echoue"),
     date: e.dateEvaluation,
     numTentative: tentative.codeTentative || tentative.idTentative || 1,
   };
@@ -91,7 +101,6 @@ export default function ResultatsPage() {
     [router]
   );
 
-  // ✅ CORRECTION ESLINT
   useEffect(() => {
     monteRef.current = true;
     const controller = new AbortController();
@@ -152,6 +161,7 @@ export default function ResultatsPage() {
 
   return (
     <div className={styles.dashboard}>
+      {/* ===== SIDEBAR : RÉSULTATS SEULEMENT + RETOUR DASHBOARD ===== */}
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <div className={styles.logoIcon}>L</div>
@@ -160,30 +170,26 @@ export default function ResultatsPage() {
             <span>Espace formateur</span>
           </div>
         </div>
+
         <div className={styles.sidebarLabel}>MENU PRINCIPAL</div>
         <nav className={styles.navigation}>
-          <Link href="/dashboard/formateur" className={styles.navLink}>
-            <span>▦</span>Tableau de bord
-          </Link>
-          <Link href="/dashboard/formateur#formations" className={styles.navLink}>
-            <span>▤</span>Mes formations
-          </Link>
-          <Link href="/dashboard/formateur/modules" className={styles.navLink}>
-            <span>▣</span>Mes leçons
-          </Link>
-          <Link href="/dashboard/formateur/quiz" className={styles.navLink}>
-            <span>✎</span>Quiz et évaluations
-          </Link>
-          <Link href="/dashboard/formateur/tentatives" className={styles.navLink}>
-            <span>◉</span>Suivi tentatives
-          </Link>
+          {/* ✅ SEUL LIEN DE CETTE PAGE */}
           <Link href="/dashboard/formateur/resultats" className={`${styles.navLink} ${styles.active}`}>
-            <span>▥</span>Résultats
+            <BarChart3 size={19} /> Résultats
           </Link>
         </nav>
+
+        {/* ✅ RETOUR AU TABLEAU DE BORD */}
+        <div className={styles.sidebarReturn}>
+          <Link href="/dashboard/formateur" className={styles.returnButton}>
+            <ArrowLeft size={18} /> Retour au tableau de bord
+          </Link>
+          <p>Retourne à ton espace principal formateur pour gérer formations, modules et quiz.</p>
+        </div>
+
         <div className={styles.sidebarBottom}>
           <button type="button" className={styles.logoutButton} onClick={fermerSession}>
-            <span>↪</span>Déconnexion
+            <LogOut size={18} /> Déconnexion
           </button>
         </div>
       </aside>
@@ -191,15 +197,12 @@ export default function ResultatsPage() {
       <main className={styles.main}>
         <header className={styles.topbar}>
           <div>
-            <span className={styles.topbarSubtitle}>Espace formateur</span>
+            <span className={styles.topbarSubtitle}>Espace formateur • Résultats</span>
             <h1>Résultats des apprenants</h1>
           </div>
           <div className={styles.topbarRight}>
-            <Link href="/dashboard/formateur/tentatives" className={styles.secondaryButton}>
-              ◉ Suivi en direct
-            </Link>
             <Link href="/dashboard/formateur" className={styles.primaryButton}>
-              ← Tableau de bord
+              <ArrowLeft size={18} /> Tableau de bord
             </Link>
           </div>
         </header>
@@ -207,43 +210,27 @@ export default function ResultatsPage() {
         <div className={styles.content}>
           {erreur && (
             <div className={styles.errorMessage}>
-              <span>!</span>
+              <XCircle size={18} />
               {erreur}
             </div>
           )}
 
           <section className={styles.statsGrid}>
             <article className={styles.statCard}>
-              <div className={`${styles.statIcon} ${styles.blueIcon}`}>▥</div>
-              <div>
-                <span>Évaluations passées</span>
-                <strong>{filtrees.length}</strong>
-                <small>Tentatives terminées</small>
-              </div>
+              <div className={`${styles.statIcon} ${styles.blueIcon}`}><BarChart3 size={22} /></div>
+              <div><span>Évaluations passées</span><strong>{filtrees.length}</strong><small>Tentatives terminées</small></div>
             </article>
             <article className={styles.statCard}>
-              <div className={`${styles.statIcon} ${styles.orangeIcon}`}>★</div>
-              <div>
-                <span>Moyenne</span>
-                <strong>{moyenne} / 20</strong>
-                <small>Sur les résultats filtrés</small>
-              </div>
+              <div className={`${styles.statIcon} ${styles.orangeIcon}`}><Star size={22} /></div>
+              <div><span>Moyenne</span><strong>{moyenne} / 20</strong><small>Sur les résultats filtrés</small></div>
             </article>
             <article className={styles.statCard}>
-              <div className={`${styles.statIcon} ${styles.greenIcon}`}>✓</div>
-              <div>
-                <span>Réussites</span>
-                <strong>{reussis}</strong>
-                <small>{tauxReussite}% de réussite</small>
-              </div>
+              <div className={`${styles.statIcon} ${styles.greenIcon}`}><CheckCircle2 size={22} /></div>
+              <div><span>Réussites</span><strong>{reussis}</strong><small>{tauxReussite}% de réussite</small></div>
             </article>
             <article className={styles.statCard}>
-              <div className={`${styles.statIcon} ${styles.purpleIcon}`}>🎓</div>
-              <div>
-                <span>Certificats délivrés</span>
-                <strong>{certificats.length}</strong>
-                <small>{echoues} échec(s)</small>
-              </div>
+              <div className={`${styles.statIcon} ${styles.purpleIcon}`}><GraduationCap size={22} /></div>
+              <div><span>Certificats délivrés</span><strong>{certificats.length}</strong><small>{echoues} échec(s)</small></div>
             </article>
           </section>
 
@@ -257,19 +244,19 @@ export default function ResultatsPage() {
             </div>
 
             <div className={styles.listToolbar}>
-              <input
-                type="search"
-                className={styles.searchInput}
-                placeholder="Rechercher un apprenant, email, formation..."
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-              />
+              <div className={styles.searchBox}>
+                <Search size={18} />
+                <input
+                  type="search"
+                  placeholder="Rechercher un apprenant, email, formation..."
+                  value={recherche}
+                  onChange={(e) => setRecherche(e.target.value)}
+                />
+              </div>
               <select value={filtreFormation} onChange={(e) => setFiltreFormation(e.target.value)} className={styles.select}>
                 <option value="toutes">Toutes les formations</option>
                 {formations.map((f) => (
-                  <option key={f} value={f}>
-                    {f}
-                  </option>
+                  <option key={f} value={f}>{f}</option>
                 ))}
               </select>
               <select value={filtreStatut} onChange={(e) => setFiltreStatut(e.target.value)} className={styles.select}>
@@ -287,9 +274,10 @@ export default function ResultatsPage() {
 
             {filtrees.length === 0 ? (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>▥</div>
+                <div className={styles.emptyIcon}><Trophy size={32} /></div>
                 <h3>Aucun résultat</h3>
                 <p>Aucun apprenant n&apos;a encore passé d&apos;évaluation.</p>
+                <Link href="/dashboard/formateur" className={styles.emptyLink}>Retour au tableau de bord</Link>
               </div>
             ) : (
               <div className={styles.tableWrap}>
@@ -315,24 +303,18 @@ export default function ResultatsPage() {
                             <div className={styles.apprenantCell}>
                               <div className={styles.avatar}>{String(e.prenom || e.nom || "?").charAt(0).toUpperCase()}</div>
                               <div>
-                                <strong>
-                                  {e.prenom} {e.nom}
-                                </strong>
+                                <strong>{e.prenom} {e.nom}</strong>
                                 <span>{e.email || "—"}</span>
                               </div>
                             </div>
                           </td>
                           <td>{e.formation}</td>
                           <td>{e.quiz}</td>
-                          <td>
-                            <span className={styles.tentativeBadge}>#{e.numTentative}</span>
-                          </td>
+                          <td><span className={styles.tentativeBadge}>#{e.numTentative}</span></td>
                           <td>{e.date ? new Date(e.date).toLocaleDateString("fr-FR") : "—"}</td>
                           <td>
                             <div className={styles.scoreCell}>
-                              <strong>
-                                {e.score} / {e.noteMax}
-                              </strong>
+                              <strong>{e.score} / {e.noteMax}</strong>
                               <div className={styles.miniProgress}>
                                 <div className={reussi ? styles.miniProgressOk : styles.miniProgressKo} style={{ width: `${pourcentage}%` }} />
                               </div>
@@ -341,7 +323,7 @@ export default function ResultatsPage() {
                           </td>
                           <td>
                             <span className={`${styles.statusBadge} ${reussi ? styles.statusReady : styles.statusPending}`}>
-                              {reussi ? "✓ Réussi" : "✕ Échoué"}
+                              {reussi ? <><CheckCircle2 size={14} /> Réussi</> : <><XCircle size={14} /> Échoué</>}
                             </span>
                           </td>
                         </tr>

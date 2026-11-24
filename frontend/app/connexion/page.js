@@ -1,21 +1,141 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import styles from "./connexion.module.css";
 
 const API = "http://localhost:5000/api/auth";
 
 export default function ConnexionPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [pwd, setPwd] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    pwd: ""
+  });
+
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(false);
-  const [afficherPwd, setAfficherPwd] = useState(false);
+  const [afficher, setAfficher] = useState(false);
+  const [chargementGoogle, setChargementGoogle] = useState(false);
 
-  const handleConnexion = async (e) => {
+  const googleDivRef = useRef(null);
+  const googleInitRef = useRef(false);
+
+  const sauvegarderSession = (data) => {
+    const utilisateur = {
+      ...data.utilisateur,
+      role: data.utilisateur.role
+    };
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("utilisateur");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("utilisateur");
+    sessionStorage.removeItem("user");
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("utilisateur", JSON.stringify(utilisateur));
+    localStorage.setItem("user", JSON.stringify(utilisateur));
+
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("utilisateur", JSON.stringify(utilisateur));
+    sessionStorage.setItem("user", JSON.stringify(utilisateur));
+
+    return utilisateur;
+  };
+
+  const handleGoogle = async (response) => {
+    setErreur("");
+    setChargementGoogle(true);
+
+    try {
+      const res = await fetch(`${API}/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: response.credential })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Connexion Google échouée.");
+      }
+
+      if (!data.token || !data.utilisateur) {
+        throw new Error("Réponse du serveur invalide.");
+      }
+
+      sauvegarderSession(data);
+      router.replace(data.redirectTo || "/dashboard/apprenant");
+    } catch (error) {
+      setErreur(error.message || "Impossible de se connecter avec Google.");
+    } finally {
+      setChargementGoogle(false);
+    }
+  };
+
+  useEffect(() => {
+    const initGoogle = () => {
+      if (googleInitRef.current) return;
+      if (!window.google || !googleDivRef.current) return;
+      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+        setErreur("NEXT_PUBLIC_GOOGLE_CLIENT_ID manquant dans .env.local du frontend.");
+        return;
+      }
+
+      googleInitRef.current = true;
+
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        callback: handleGoogle,
+        use_fedcm_for_prompt: false,
+        auto_select: false,
+      });
+
+      window.google.accounts.id.renderButton(googleDivRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 400,
+        text: "continue_with",
+        shape: "rectangular",
+      });
+    };
+
+    if (window.google) {
+      initGoogle();
+      return;
+    }
+
+    if (document.getElementById("google-script")) {
+      const interval = setInterval(() => {
+        if (window.google) {
+          initGoogle();
+          clearInterval(interval);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
+
+    const script = document.createElement("script");
+    script.id = "google-script";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = initGoogle;
+    document.head.appendChild(script);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleChange = (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErreur("");
     setChargement(true);
@@ -23,109 +143,107 @@ export default function ConnexionPage() {
     try {
       const response = await fetch(`${API}/connexion`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          pwd,
-        }),
+          email: form.email.trim().toLowerCase(),
+          pwd: form.pwd
+        })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Email ou mot de passe incorrect.");
+        throw new Error(data.message || "Erreur lors de la connexion.");
       }
 
       if (!data.token || !data.utilisateur) {
-        throw new Error("Les informations de connexion reçues sont invalides.");
+        throw new Error("Réponse du serveur invalide.");
       }
 
-      const utilisateur = data.utilisateur;
-      const role = String(utilisateur.role || "").toLowerCase().trim();
-
-      let destination = "";
-
-      if (role === "administrateur" || role === "admin") {
-        destination = "/dashboard/admin";
-      } else if (role === "formateur") {
-        destination = "/dashboard/formateur";
-      } else if (role === "apprenant") {
-        destination = "/dashboard/apprenant";
-      } else {
-        throw new Error("Rôle utilisateur non reconnu.");
-      }
-
-      const utilisateurStocke = {
-        ...utilisateur,
-        role,
-      };
-
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(utilisateurStocke));
-
-      sessionStorage.setItem("token", data.token);
-      sessionStorage.setItem("user", JSON.stringify(utilisateurStocke));
-
-      router.replace(destination);
+      sauvegarderSession(data);
+      router.replace(data.redirectTo || "/dashboard/apprenant");
     } catch (error) {
-      setErreur(error.message || "Une erreur est survenue.");
+      setErreur(error.message || "Impossible de contacter le serveur.");
     } finally {
       setChargement(false);
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <h1>Connexion</h1>
-        <p>Connectez-vous à votre compte Learning Pro.</p>
+    <main className="min-h-screen bg-[#f4f8f5] flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8">
+
+        <div className="text-center mb-8">
+          <Link href="/" className="text-3xl font-bold text-[#16834a]">
+            GestionFormation
+          </Link>
+          <h1 className="text-2xl font-bold text-[#183b2b] mt-6">
+            Se connecter
+          </h1>
+          <p className="text-gray-500 mt-2">
+            Connectez-vous pour accéder à vos formations.
+          </p>
+        </div>
 
         {erreur && (
-          <div className={styles.error}>
+          <div className="mb-5 rounded-lg bg-red-100 p-3 text-red-700 text-sm">
             {erreur}
           </div>
         )}
 
-        <form onSubmit={handleConnexion}>
-          <div className={styles.formGroup}>
-            <label htmlFor="email">Adresse email</label>
+        {/* GOOGLE - UNIQUEMENT SUR CONNEXION */}
+        <div className="w-full flex justify-center">
+          <div ref={googleDivRef}></div>
+        </div>
+
+        {chargementGoogle && (
+          <p className="text-center text-sm text-gray-500 mt-3">
+            Connexion Google en cours...
+          </p>
+        )}
+
+        <div className="flex items-center gap-3 my-6">
+          <hr className="flex-1 border-gray-200" />
+          <span className="text-sm text-gray-400">ou avec email</span>
+          <hr className="flex-1 border-gray-200" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block mb-2 text-sm font-semibold">
+              Adresse email
+            </label>
             <input
-              id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Votre adresse email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="exemple@email.com"
               required
-              autoComplete="email"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#16834a]"
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="pwd">Mot de passe</label>
-
-            <div className={styles.passwordContainer}>
+          <div>
+            <label className="block mb-2 text-sm font-semibold">
+              Mot de passe
+            </label>
+            <div className="relative">
               <input
-                id="pwd"
-                type={afficherPwd ? "text" : "password"}
-                value={pwd}
-                onChange={(e) => setPwd(e.target.value)}
+                type={afficher ? "text" : "password"}
+                name="pwd"
+                value={form.pwd}
+                onChange={handleChange}
                 placeholder="Votre mot de passe"
                 required
-                autoComplete="current-password"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 pr-20 outline-none focus:border-[#16834a]"
               />
-
               <button
                 type="button"
-                onClick={() => setAfficherPwd(!afficherPwd)}
+                onClick={() => setAfficher((prev) => !prev)}
+                className="absolute right-3 top-3 text-sm text-[#16834a]"
               >
-                {afficherPwd ? "Masquer" : "Afficher"}
+                {afficher ? "Masquer" : "Afficher"}
               </button>
             </div>
           </div>
@@ -133,19 +251,26 @@ export default function ConnexionPage() {
           <button
             type="submit"
             disabled={chargement}
-            className={styles.submitButton}
+            className="w-full rounded-lg bg-[#16834a] py-3 font-semibold text-white hover:bg-[#116638] disabled:opacity-60"
           >
-            {chargement ? "Connexion..." : "Se connecter"}
+            {chargement ? "Connexion en cours..." : "Se connecter"}
           </button>
         </form>
 
-        <div className={styles.footer}>
-          <p>
-            Vous n&apos;avez pas de compte ?{" "}
-            <a href="/inscription">Inscrivez-vous</a>
-          </p>
+        <p className="text-center text-sm text-gray-600 mt-6">
+          Vous n&apos;avez pas de compte ?{" "}
+          <Link href="/inscription" className="font-semibold text-[#16834a] hover:underline">
+            S&apos;inscrire
+          </Link>
+        </p>
+
+        <div className="text-center mt-5">
+          <Link href="/" className="text-sm text-gray-500 hover:text-[#16834a]">
+            ← Retour à l&apos;accueil
+          </Link>
         </div>
+
       </div>
-    </div>
+    </main>
   );
 }

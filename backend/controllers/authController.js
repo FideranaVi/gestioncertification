@@ -1,7 +1,8 @@
-
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Utilisateur = require("../models/Utilisateur");
+const { OAuth2Client } = require("google-auth-library");
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const normaliserRole = (role) => {
   const roles = {
@@ -204,7 +205,109 @@ const connexion = async (req, res) => {
   }
 };
 
+// AJOUT SEULEMENT : Connexion avec Google
+const connexionGoogle = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        message: "Token Google manquant."
+      });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      throw new Error("GOOGLE_CLIENT_ID non configuré.");
+    }
+
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET non configuré.");
+    }
+
+    // Vérifie que le token vient vraiment de Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    const emailNormalise = String(payload.email || "").trim().toLowerCase();
+
+    if (!emailNormalise) {
+      return res.status(400).json({
+        message: "Email Google introuvable."
+      });
+    }
+
+    // Nom / prénom depuis Google
+    const nomNormalise = String(payload.family_name || payload.name || "Utilisateur").trim().slice(0, 50);
+    const prenomNormalise = String(payload.given_name || payload.name || "Google").trim().slice(0, 50);
+
+    // Cherche si l'utilisateur existe déjà avec SON propre mail
+    let utilisateur = await Utilisateur.findOne({
+      where: { email: emailNormalise }
+    });
+
+    if (!utilisateur) {
+      // Nouveau compte -> Apprenant automatiquement (style SoloLearn)
+      // Mot de passe aléatoire car il se connecte avec Google
+      const pwdHash = await bcrypt.hash(Math.random().toString(36) + Date.now(), 10);
+
+      utilisateur = await Utilisateur.create({
+        nom: nomNormalise,
+        prenom: prenomNormalise,
+        email: emailNormalise,
+        pwd: pwdHash,
+        role: "apprenant"
+      });
+
+      console.log("Nouvel apprenant créé via Google :", emailNormalise);
+    } else {
+      console.log("Connexion Google existant :", emailNormalise, "Role :", utilisateur.role);
+    }
+
+    const role = normaliserRole(utilisateur.role);
+
+    if (!role) {
+      return res.status(403).json({
+        message: "Rôle utilisateur non reconnu."
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        idUtilisateur: utilisateur.idUtilisateur,
+        role
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d"
+      }
+    );
+
+    return res.status(200).json({
+      message: "Connexion Google réussie.",
+      token,
+      utilisateur: {
+        idUtilisateur: utilisateur.idUtilisateur,
+        nom: utilisateur.nom,
+        prenom: utilisateur.prenom,
+        email: utilisateur.email,
+        role
+      },
+      redirectTo: `/dashboard/${role}`
+    });
+  } catch (error) {
+    console.error("Erreur connexion Google :", error);
+
+    return res.status(401).json({
+      message: "Connexion Google échouée."
+    });
+  }
+};
+
 module.exports = {
   inscription,
-  connexion
+  connexion,
+  connexionGoogle // AJOUT SEULEMENT
 };
