@@ -21,11 +21,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Chaque fichier est chargé UNE SEULE FOIS, jamais 2 fois le même
 const routes = [
   ["authRoutes", "./routes/authRoutes", "/api/auth"],
   ["apprenantRoutes", "./routes/apprenantRoutes", "/api/apprenant"],
   ["utilisateurRoutes", "./routes/utilisateurRoutes", "/api/utilisateur"],
-  ["adminRoutes", "./routes/utilisateurRoutes", "/api/admin"],
+  ["adminRoutes", "./routes/adminRoutes", "/api/admin"],
   ["moduleRoutes", "./routes/moduleRoutes", "/api/formateur/modules"],
   ["formateurRoutes", "./routes/formateurRoutes", "/api/formateur"],
   ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"],
@@ -62,9 +63,9 @@ app.use((req, res) => {
 
 app.use((error, req, res, next) => {
   console.error("Erreur serveur :", error);
-
   res.status(500).json({
-    message: "Erreur interne du serveur."
+    message: "Erreur interne du serveur.",
+    erreur: error.message
   });
 });
 
@@ -73,9 +74,7 @@ const PORT = process.env.PORT || 5000;
 const demarrerServeur = async () => {
   try {
     await sequelize.authenticate();
-
     console.log("Connexion MySQL réussie !");
-
     app.listen(PORT, () => {
       console.log(`Serveur démarré sur http://localhost:${PORT}`);
     });
