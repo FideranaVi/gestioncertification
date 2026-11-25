@@ -8,6 +8,14 @@ import { obtenirApiFormateur } from "@/lib/api";
 
 const API = obtenirApiFormateur();
 
+// FIX : le backend renvoie parfois id, parfois idCertificat
+// Sans ça, on envoyait /certificats/undefined/valider
+// -> "Identifiant de certificat invalide"
+const getIdCertificat = (item) => {
+  if (!item) return null;
+  return item.idCertificat ?? item.id ?? item.id_certificat ?? null;
+};
+
 export default function CertificatsFormateurPage() {
   const router = useRouter();
   const [certificats, setCertificats] = useState([]);
@@ -17,7 +25,6 @@ export default function CertificatsFormateurPage() {
   const [traitement, setTraitement] = useState(null);
   const [filtre, setFiltre] = useState("tous");
 
-  // FIX: setState only inside setTimeout callback, never sync in effect
   useEffect(() => {
     const timer = setTimeout(() => {
       const token = localStorage.getItem("token");
@@ -26,9 +33,11 @@ export default function CertificatsFormateurPage() {
         setChargement(false);
         return;
       }
-      fetch(API + "/certificats/formateur", { headers: { Authorization: "Bearer " + token } })
+      fetch(API + "/certificats/formateur", {
+        headers: { Authorization: "Bearer " + token },
+      })
         .then(async (response) => {
-          const data = await response.json();
+          const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.message || "Impossible de charger les certificats.");
           return data;
         })
@@ -54,9 +63,11 @@ export default function CertificatsFormateurPage() {
     }
     setChargement(true);
     setErreur("");
-    fetch(API + "/certificats/formateur", { headers: { Authorization: "Bearer " + token } })
+    fetch(API + "/certificats/formateur", {
+      headers: { Authorization: "Bearer " + token },
+    })
       .then(async (response) => {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.message || "Impossible de charger les certificats.");
         return data;
       })
@@ -76,7 +87,11 @@ export default function CertificatsFormateurPage() {
     if (!date) return "Date non disponible";
     const valeur = new Date(date);
     if (Number.isNaN(valeur.getTime())) return "Date non disponible";
-    return valeur.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+    return valeur.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
   };
 
   const obtenirTitre = (item) => {
@@ -109,27 +124,42 @@ export default function CertificatsFormateurPage() {
       setErreur("Session expiree. Veuillez vous reconnecter.");
       return;
     }
+    // FIX : on n'appelle jamais le backend avec un id vide
+    if (!idCertificat || idCertificat === "undefined") {
+      setErreur("Identifiant de certificat invalide. Recharge la page.");
+      return;
+    }
     setTraitement(idCertificat);
     setErreur("");
     setSucces("");
-    fetch(API + "/certificats/" + idCertificat + "/valider", {
+    fetch(API + "/certificats/" + encodeURIComponent(idCertificat) + "/valider", {
       method: "PUT",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ decision: decision })
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ decision: decision }),
     })
       .then(async (response) => {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.message || "Impossible de traiter le certificat.");
         return data;
       })
       .then((data) => {
-        setSucces(data.message || (decision === "valider" ? "Certificat valide." : "Certificat refuse."));
-        setCertificats((anciens) => anciens.map((item) => {
-          if (item.idCertificat === idCertificat) {
-            return Object.assign({}, item, { statutCertificat: decision === "valider" ? "validee" : "annulee" });
-          }
-          return item;
-        }));
+        setSucces(
+          data.message ||
+            (decision === "valider" ? "Certificat valide." : "Certificat refuse.")
+        );
+        setCertificats((anciens) =>
+          anciens.map((item) => {
+            if (getIdCertificat(item) === idCertificat) {
+              return Object.assign({}, item, {
+                statutCertificat: decision === "valider" ? "validee" : "annulee",
+              });
+            }
+            return item;
+          })
+        );
         setTraitement(null);
       })
       .catch((error) => {
@@ -161,41 +191,92 @@ export default function CertificatsFormateurPage() {
 
   return (
     <main className={styles.page}>
-      <nav className={styles.topNav}>
-        <Link href="/dashboard/formateur" className={styles.logo}>
-          <span className={styles.logoIcon}>L</span>
-          LearningPro
-        </Link>
-        <div className={styles.navLinks}>
-          <Link href="/dashboard/formateur">Tableau de bord</Link>
-          <Link href="/dashboard/formateur/formations">Formations</Link>
-          <Link href="/dashboard/formateur/certificats" className={styles.navActive}>Certificats</Link>
-          <Link href="/dashboard/formateur/profil">Profil</Link>
-        </div>
-        <button type="button" className={styles.navBack} onClick={() => router.push("/dashboard/formateur")}>Retour</button>
-      </nav>
+      {/* ===== NAV HAUT : juste Retour ===== */}
+      <div className={styles.topBar}>
+        <button
+          type="button"
+          className={styles.backButton}
+          onClick={() => router.push("/dashboard/formateur")}
+        >
+          ← Retour
+        </button>
+        <span className={styles.pageTitle}>Certificats</span>
+        <span className={styles.topBarSpacer} />
+      </div>
+
       <div className={styles.container}>
         <header className={styles.header}>
           <div className={styles.headerContent}>
             <span className={styles.eyebrow}>LEARNING PRO / ESPACE FORMATEUR</span>
-            <h1>Demandes de <span>certificats</span></h1>
+            <h1>
+              Demandes de <span>certificats</span>
+            </h1>
             <p>Validez ou refusez les demandes de vos apprenants. Vous seul decidez.</p>
           </div>
-          <button type="button" className={styles.refreshButton} onClick={recharger}>Actualiser</button>
+          <button type="button" className={styles.refreshButton} onClick={recharger}>
+            Actualiser
+          </button>
         </header>
-        {erreur && (<div className={styles.error}><span>!</span>{erreur}</div>)}
-        {succes && (<div className={styles.success}><span>OK</span>{succes}</div>)}
+
+        {erreur && (
+          <div className={styles.error}>
+            <span>!</span>
+            {erreur}
+          </div>
+        )}
+        {succes && (
+          <div className={styles.success}>
+            <span>OK</span>
+            {succes}
+          </div>
+        )}
+
         <section className={styles.summary}>
-          <div className={styles.summaryStat}><span>En attente</span><strong>{nbEnAttente}</strong></div>
-          <div className={styles.summaryStat}><span>Valides</span><strong>{nbValides}</strong></div>
-          <div className={styles.summaryStat}><span>Refuses</span><strong>{nbRefuses}</strong></div>
+          <div className={styles.summaryStat}>
+            <span>En attente</span>
+            <strong>{nbEnAttente}</strong>
+          </div>
+          <div className={styles.summaryStat}>
+            <span>Valides</span>
+            <strong>{nbValides}</strong>
+          </div>
+          <div className={styles.summaryStat}>
+            <span>Refuses</span>
+            <strong>{nbRefuses}</strong>
+          </div>
         </section>
+
         <div className={styles.filters}>
-          <button type="button" className={filtre === "tous" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("tous")}>Tous ({certificats.length})</button>
-          <button type="button" className={filtre === "en_attente" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("en_attente")}>En attente ({nbEnAttente})</button>
-          <button type="button" className={filtre === "validee" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("validee")}>Valides ({nbValides})</button>
-          <button type="button" className={filtre === "annulee" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("annulee")}>Refuses ({nbRefuses})</button>
+          <button
+            type="button"
+            className={filtre === "tous" ? styles.filterActive : styles.filterButton}
+            onClick={() => setFiltre("tous")}
+          >
+            Tous ({certificats.length})
+          </button>
+          <button
+            type="button"
+            className={filtre === "en_attente" ? styles.filterActive : styles.filterButton}
+            onClick={() => setFiltre("en_attente")}
+          >
+            En attente ({nbEnAttente})
+          </button>
+          <button
+            type="button"
+            className={filtre === "validee" ? styles.filterActive : styles.filterButton}
+            onClick={() => setFiltre("validee")}
+          >
+            Valides ({nbValides})
+          </button>
+          <button
+            type="button"
+            className={filtre === "annulee" ? styles.filterActive : styles.filterButton}
+            onClick={() => setFiltre("annulee")}
+          >
+            Refuses ({nbRefuses})
+          </button>
         </div>
+
         {certificatsFiltres.length === 0 ? (
           <div className={styles.empty}>
             <h3>Aucune demande pour ce filtre</h3>
@@ -204,32 +285,77 @@ export default function CertificatsFormateurPage() {
         ) : (
           <div className={styles.certificateGrid}>
             {certificatsFiltres.map((item, index) => {
+              const idCertificat = getIdCertificat(item);
               const titre = obtenirTitre(item);
-              const nomApprenant = obtenirNomComplet(item.apprenant || item.Apprenant || item.utilisateur);
+              const nomApprenant = obtenirNomComplet(
+                item.apprenant || item.Apprenant || item.utilisateur
+              );
               const statut = obtenirStatut(item);
-              const enCours = traitement === item.idCertificat;
+              const enCours = traitement === idCertificat;
               return (
-                <article className={styles.certificateCard} key={item.idCertificat || index}>
+                <article
+                  className={styles.certificateCard}
+                  key={idCertificat || index}
+                >
                   <div className={styles.certificateInfo}>
                     <div className={styles.cardHeader}>
                       <div>
                         <span className={styles.label}>CERTIFICATION</span>
                         <h3>{titre}</h3>
                       </div>
-                      <span className={styles.verifiedBadge}>{obtenirLibelleStatut(statut)}</span>
+                      <span
+                        className={`${styles.verifiedBadge} ${
+                          statut === "validee"
+                            ? styles.badgeValide
+                            : statut === "annulee"
+                            ? styles.badgeRefuse
+                            : styles.badgeAttente
+                        }`}
+                      >
+                        {obtenirLibelleStatut(statut)}
+                      </span>
                     </div>
                     <div className={styles.infoGrid}>
-                      <div className={styles.infoItem}><span className={styles.label}>APPRENANT</span><strong>{nomApprenant}</strong></div>
-                      <div className={styles.infoItem}><span className={styles.label}>DATE</span><strong>{formaterDate(item.dateObtention)}</strong></div>
-                      <div className={styles.infoItem}><span className={styles.label}>REFERENCE</span><strong>{item.numeroCertificat || item.idCertificat || "Non disponible"}</strong></div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.label}>APPRENANT</span>
+                        <strong>{nomApprenant}</strong>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.label}>DATE</span>
+                        <strong>{formaterDate(item.dateObtention)}</strong>
+                      </div>
+                      <div className={styles.infoItem}>
+                        <span className={styles.label}>REFERENCE</span>
+                        <strong>
+                          {item.numeroCertificat || idCertificat || "Non disponible"}
+                        </strong>
+                      </div>
                     </div>
                     {statut === "en_attente" ? (
-                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                        <button type="button" className={styles.downloadButton} disabled={enCours} onClick={() => traiterCertificat(item.idCertificat, "valider")}>{enCours ? "Traitement..." : "Valider"}</button>
-                        <button type="button" className={styles.downloadButton} style={{ background: "#fff", color: "#dc2626", border: "1px solid #fecaca" }} disabled={enCours} onClick={() => traiterCertificat(item.idCertificat, "refuser")}>Refuser</button>
+                      <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          className={styles.validateButton}
+                          disabled={enCours}
+                          onClick={() => traiterCertificat(idCertificat, "valider")}
+                        >
+                          {enCours ? "Traitement..." : "Valider"}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.refuseButton}
+                          disabled={enCours}
+                          onClick={() => traiterCertificat(idCertificat, "refuser")}
+                        >
+                          Refuser
+                        </button>
                       </div>
                     ) : (
-                      <p className={styles.downloadHint}>{statut === "validee" ? "Ce certificat est valide. L apprenant peut le telecharger." : "Ce certificat a ete refuse. L apprenant ne voit aucun certificat, seulement Reprendre le quiz."}</p>
+                      <p className={styles.downloadHint}>
+                        {statut === "validee"
+                          ? "Ce certificat est valide. L apprenant peut le telecharger."
+                          : "Ce certificat a ete refuse. L apprenant ne voit aucun certificat, seulement Reprendre le quiz."}
+                      </p>
                     )}
                   </div>
                 </article>
@@ -238,6 +364,25 @@ export default function CertificatsFormateurPage() {
           </div>
         )}
       </div>
+
+      {/* ===== NAV BAS : comme une vraie app ===== */}
+      <nav className={styles.bottomNav}>
+        <Link href="/dashboard/formateur" className={styles.bottomNavLink}>
+          Tableau de bord
+        </Link>
+        <Link href="/dashboard/formateur/formations" className={styles.bottomNavLink}>
+          Formations
+        </Link>
+        <Link
+          href="/dashboard/formateur/certificats"
+          className={`${styles.bottomNavLink} ${styles.bottomNavActive}`}
+        >
+          Certificats
+        </Link>
+        <Link href="/dashboard/formateur/profil" className={styles.bottomNavLink}>
+          Profil
+        </Link>
+      </nav>
     </main>
   );
 }
