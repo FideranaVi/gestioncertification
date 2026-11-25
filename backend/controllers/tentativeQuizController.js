@@ -1,381 +1,768 @@
 const { Op } = require("sequelize");
-const sequelize = require("../config/database");
+const crypto = require("crypto");
 const { db, obtenirIdUtilisateur } = require("./utilsController");
+const sequelize = require("../config/database");
+const ActiviteTentative = require("../models/ActiviteTentative");
 
-// On utilise les modeles si ils existent, sinon on passe par sequelize.models
-const Tentative = sequelize.models.Tentative || sequelize.models.tentative || sequelize.models.TentativeQuiz;
-const Quiz = sequelize.models.Quiz || sequelize.models.quiz;
-const Certificat = sequelize.models.Certificat || sequelize.models.certificat;
-const Question = sequelize.models.Question || sequelize.models.question;
+const {
+  Quiz,
+  Module,
+  Formation,
+  Question,
+  Reponse,
+  TentativeQuiz,
+  ReponseApprenant,
+  Evaluation,
+  SuiviFormation,
+  SuiviModule,
+  Utilisateur,
+  Certificat
+} = db;
 
-function obtenirStatutCertificat(valeur) {
-  return String(valeur || "").toLowerCase().trim();
+const TYPES_SORTIE = [
+  "sortie_onglet",
+  "sortie_fenetre",
+  "page_quittee"
+];
+
+const SEUIL_VERIFICATION = 4;
+
+function obtenirQuestionsOptions() {
+  return {
+    model: Question,
+    as: "questions",
+    attributes: [
+      "numQuestion",
+      "typeQuestion",
+      "enonce",
+      "points"
+    ],
+    include: [{
+      model: Reponse,
+      as: "reponses",
+      attributes: [
+        "numReponse",
+        "libelle",
+        "estCorrecte"
+      ]
+    }]
+  };
 }
 
-// ================= CREER / DEMARRER UNE TENTATIVE =================
-// POST /api/apprenant/tentatives  { codeQuiz }
-// JAMAIS de blocage si deja reussi.
-// JAMAIS de blocage si certificat refuse / valide.
-// Seul cas de reprise : une tentative en_cours existe deja.
-async function creerTentative(req, res) {
+function quizPourApprenant(quiz) {
+  if (!quiz) return null;
+  const donnees = quiz.toJSON ? quiz.toJSON() : JSON.parse(JSON.stringify(quiz));
+  if (Array.isArray(donnees.questions)) {
+    donnees.questions = donnees.questions.map(question => ({
+      ...question,
+      reponses: (question.reponses || []).map(reponse => {
+        const { estCorrecte, esCorrect, ...reponsePublique } = reponse;
+        return reponsePublique;
+      })
+    }));
+  }
+  return donnees;
+}
+
+function obtenirDateExpiration(tentative, quiz) {
+  const duree = Number(quiz?.duree || 0);
+  if (!duree || !tentative?.dateTentative) return null;
+  return new Date(new Date(tentative.dateTentative).getTime() + duree * 60 * 1000);
+}
+
+function estExpiree(tentative, quiz) {
+  const expiration = obtenirDateExpiration(tentative, quiz);
+  return expiration ? Date.now() >= expiration.getTime() : false;
+}
+
+function normaliserReponses(reponses) {
+  if (!Array.isArray(reponses)) return [];
+  return reponses.map(item => {
+    const numQuestion = Number(item?.numQuestion);
+    let valeurs = [];
+    if (Array.isArray(item?.numReponses)) valeurs = item.numReponses;
+    else if (Array.isArray(item?.reponses)) valeurs = item.reponses.map(reponse => typeof reponse === "object" ? reponse?.numReponse : reponse);
+    else if (item?.numReponse !== undefined && item?.numReponse !== null) valeurs = [item.numReponse];
+    return {
+      numQuestion,
+      numReponses: [...new Set(valeurs.map(Number).filter(id => Number.isInteger(id) && id > 0))]
+    };
+  });
+}
+
+async function chargerQuiz(codeQuiz, transaction = null) {
+  return Quiz.findByPk(codeQuiz, {
+    include: [
+      {
+        model: Module,
+        as: "module",
+        required: false,
+        include: [{ model: Formation, as: "formation", required: false }]
+      },
+      obtenirQuestionsOptions()
+    ],
+    transaction
+  });
+}
+
+function obtenirIdApprenant(req) {
+  const id = Number(obtenirIdUtilisateur(req));
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function tentativesIllimitees(quiz) {
+  return true;
+}
+
+function obtenirNombreTentativesMax(quiz) {
+  return 999999;
+}
+
+async function obtenirFormationDuQuiz(quiz, transaction = null) {
+  if (!quiz) return null;
+  if (quiz.numFormation) {
+    const numFormation = Number(quiz.numFormation);
+    if (Number.isInteger(numFormation) && numFormation > 0) return numFormation;
+  }
+  if (quiz.module?.numFormation) return Number(quiz.module.numFormation);
+  if (quiz.module?.formation?.numFormation) return Number(quiz.module.formation.numFormation);
+  if (quiz.codeModule) {
+    const module = await Module.findByPk(quiz.codeModule, { transaction });
+    return module ? Number(module.numFormation) : null;
+  }
+  return null;
+}
+
+async function verifierModuleTermine(idApprenant, module, transaction = null) {
+  if (!module) return false;
+  const suiviModule = await SuiviModule.findOne({ where: { idApprenant, codeModule: module.codeModule }, transaction });
+  return suiviModule?.statut === "terminee";
+}
+
+async function verifierFormationModulesTermines(idApprenant, numFormation, transaction = null) {
+  const modules = await Module.findAll({ where: { numFormation: Number(numFormation) }, order: [["ordre", "ASC"], ["codeModule", "ASC"]], transaction });
+  if (!modules.length) return { autorise: false, totalModules: 0, modulesTermines: 0, progression: 0 };
+  const resultats = await Promise.all(modules.map(module => verifierModuleTermine(idApprenant, module, transaction)));
+  const modulesTermines = resultats.filter(Boolean).length;
+  return { autorise: modulesTermines === modules.length, totalModules: modules.length, modulesTermines, progression: Math.round(modulesTermines / modules.length * 100) };
+}
+
+async function verifierAccesQuiz(quiz, idApprenant, transaction = null) {
+  if (!quiz || !idApprenant) return { autorise: false, message: "Utilisateur ou quiz invalide." };
+  const numFormation = await obtenirFormationDuQuiz(quiz, transaction);
+  if (!numFormation) return { autorise: false, message: "Ce quiz n'est pas associé à une formation." };
+  const inscription = await SuiviFormation.findOne({ where: { idApprenant, numFormation }, transaction });
+  if (!inscription) return { autorise: false, message: "Vous devez vous inscrire à cette formation avant de passer ce quiz." };
+  // CORRECTION : on ne bloque plus si formation terminee.
+  // Sinon apres un refus du formateur, l'apprenant ne peut plus reprendre.
+  if (quiz.typeQuiz === "final") {
+    const progression = await verifierFormationModulesTermines(idApprenant, numFormation, transaction);
+    if (!progression.autorise) return { autorise: false, message: "Vous devez terminer tous les modules de cette formation avant de passer le quiz final.", progression };
+    return { autorise: true, type: "final", numFormation, progression };
+  }
+  if (quiz.typeQuiz === "module" || quiz.codeModule) {
+    const module = quiz.codeModule ? await Module.findByPk(quiz.codeModule, { transaction }) : null;
+    if (!module || Number(module.numFormation) !== Number(numFormation)) return { autorise: false, message: "Le module associé à ce quiz est introuvable." };
+    const moduleTermine = await verifierModuleTermine(idApprenant, module, transaction);
+    if (!moduleTermine) return { autorise: false, message: "Vous devez terminer le module associé avant de passer ce quiz." };
+    return { autorise: true, type: "module", numFormation, codeModule: module.codeModule };
+  }
+  return { autorise: false, message: "Type de quiz non reconnu." };
+}
+
+async function enregistrerUneQuestion({ idTentative, numQuestion, numReponses, quiz, transaction }) {
+  const question = (quiz.questions || []).find(item => Number(item.numQuestion) === Number(numQuestion));
+  if (!question) throw new Error("Cette question n'appartient pas à ce quiz.");
+  const reponsesAutorisees = new Set((question.reponses || []).map(item => Number(item.numReponse)));
+  const selection = [...new Set(numReponses.map(Number))];
+  for (const id of selection) {
+    if (!Number.isInteger(id) || !reponsesAutorisees.has(id)) throw new Error("Une réponse ne correspond pas à cette question.");
+  }
+  await ReponseApprenant.destroy({ where: { idTentative, numQuestion }, transaction });
+  if (selection.length) {
+    await ReponseApprenant.bulkCreate(selection.map(numReponse => ({ idTentative, numQuestion, numReponse })), { transaction });
+  }
+}
+
+function estUneBonneReponse(valeur) {
+  return valeur === true || valeur === 1 || valeur === "1" || String(valeur).toLowerCase() === "true";
+}
+
+async function calculerResultat(tentative, quiz, transaction) {
+  const questions = quiz.questions || [];
+  const reponsesEnregistrees = await ReponseApprenant.findAll({ where: { idTentative: tentative.idTentative }, transaction });
+  const selectionParQuestion = new Map();
+  for (const reponse of reponsesEnregistrees) {
+    const idQuestion = Number(reponse.numQuestion);
+    const idReponse = Number(reponse.numReponse);
+    if (!selectionParQuestion.has(idQuestion)) selectionParQuestion.set(idQuestion, new Set());
+    selectionParQuestion.get(idQuestion).add(idReponse);
+  }
+  let pointsObtenus = 0;
+  let pointsTotal = 0;
+  const details = [];
+  for (const question of questions) {
+    const pointsQuestion = Number(question.points ?? 1);
+    const points = Number.isFinite(pointsQuestion) && pointsQuestion >= 0 ? pointsQuestion : 1;
+    pointsTotal += points;
+    const bonnesReponses = (question.reponses || []).filter(reponse => estUneBonneReponse(reponse.estCorrecte ?? reponse.esCorrect)).map(reponse => Number(reponse.numReponse)).sort((a, b) => a - b);
+    const selectionnees = [...(selectionParQuestion.get(Number(question.numQuestion)) || [])].sort((a, b) => a - b);
+    const exact = bonnesReponses.length > 0 && bonnesReponses.length === selectionnees.length && bonnesReponses.every((id, index) => id === selectionnees[index]);
+    const pointsGagnes = exact ? points : 0;
+    pointsObtenus += pointsGagnes;
+    details.push({ numQuestion: Number(question.numQuestion), enonce: question.enonce, reponsesSelectionnees: selectionnees, reponsesCorrectes: bonnesReponses, pointsObtenus: pointsGagnes, pointsPossibles: points, correct: exact });
+  }
+  const score = pointsTotal > 0 ? Number((pointsObtenus / pointsTotal * 100).toFixed(2)) : 0;
+  const seuil = Number(quiz.seuilReussite ?? 0);
+  return { score, resultat: score >= seuil ? "reussi" : "echoue", pointsObtenus, pointsTotal, details };
+}
+
+// =====================================================
+// CERTIFICATION ET SURVEILLANCE
+// =====================================================
+
+async function creerDemandeCertificatSiAdmissible(idApprenant, numFormation, idFormateur, transaction) {
+  if (!idApprenant || !numFormation || !idFormateur) return null;
+  const existant = await Certificat.findOne({ where: { idApprenant, numFormation }, transaction, lock: transaction.LOCK.UPDATE });
+  if (existant) {
+    // CORRECTION : si certificat refuse (annulee), nouvelle reussite -> en_attente
+    const statut = String(existant.statutCertificat || "").toLowerCase();
+    if (statut === "annulee" || statut === "refuse" || statut === "refusé") {
+      await existant.update({ statutCertificat: "en_attente", dateObtention: new Date(), idFormateur }, { transaction });
+    }
+    return existant;
+  }
+  const modules = await Module.findAll({ where: { numFormation }, attributes: ["codeModule"], transaction });
+  const conditionsQuiz = [{ numFormation }];
+  const codesModules = modules.map(module => module.codeModule);
+  if (codesModules.length) conditionsQuiz.push({ codeModule: { [Op.in]: codesModules } });
+  const quizzes = await Quiz.findAll({ where: { [Op.or]: conditionsQuiz }, transaction });
+  if (!quizzes.length) return null;
+  for (const quiz of quizzes) {
+    const evaluations = await Evaluation.findAll({
+      where: { resultat: "reussi" },
+      include: [{ model: TentativeQuiz, as: "tentative", required: true, where: { idApprenant, codeQuiz: quiz.codeQuiz, statut: "terminee" } }],
+      transaction
+    });
+    const evaluationAdmissible = evaluations.some(evaluation => {
+      const statut = evaluation.tentative?.statutSurveillance || "normal";
+      return ["normal", "validee"].includes(statut);
+    });
+    if (!evaluationAdmissible) return null;
+  }
+  return Certificat.create({
+    numeroCertificat: `LP-${numFormation}-${idApprenant}-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`,
+    dateObtention: new Date(),
+    statutCertificat: "en_attente",
+    idApprenant,
+    numFormation,
+    idFormateur
+  }, { transaction });
+}
+
+async function creerCertificatDirectSiAbsent(idApprenant, numFormation, idFormateur, statutCertificat, transaction) {
+  const existant = await Certificat.findOne({ where: { idApprenant, numFormation }, transaction, lock: transaction ? transaction.LOCK.UPDATE : undefined });
+  if (existant) return existant;
+  return Certificat.create({
+    numeroCertificat: `LP-${numFormation}-${idApprenant}-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`,
+    dateObtention: new Date(),
+    statutCertificat,
+    idApprenant,
+    numFormation,
+    idFormateur
+  }, { transaction });
+}
+
+async function terminerEtEnregistrer(tentative, quiz, transaction) {
+  const resultat = await calculerResultat(tentative, quiz, transaction);
+  const statutSurveillance = tentative.statutSurveillance || "normal";
+  await tentative.update({ score: resultat.score, statut: "terminee" }, { transaction });
+  const evaluationExistante = await Evaluation.findOne({ where: { idTentative: tentative.idTentative }, transaction });
+  const donneesEvaluation = { score: resultat.score, dateEvaluation: new Date(), resultat: resultat.resultat };
+  if (evaluationExistante) await evaluationExistante.update(donneesEvaluation, { transaction });
+  else await Evaluation.create({ ...donneesEvaluation, idTentative: tentative.idTentative }, { transaction });
+  let certificat = null;
+  if (quiz.typeQuiz === "final" && resultat.resultat === "reussi" && ["normal", "validee"].includes(statutSurveillance)) {
+    const numFormation = await obtenirFormationDuQuiz(quiz, transaction);
+    if (!numFormation) throw new Error("Impossible de créer la demande : formation introuvable.");
+    if (!quiz.idFormateur) throw new Error("Impossible de créer la demande : formateur introuvable.");
+    certificat = await creerDemandeCertificatSiAdmissible(tentative.idApprenant, numFormation, quiz.idFormateur, transaction);
+  }
+  return { ...resultat, certificat, statutSurveillance };
+}
+
+function construireReponseResultat({ tentative, quiz, resultat, certificat, message }) {
+  return {
+    message,
+    tentative,
+    nomQuiz: quiz.nomQuiz,
+    score: resultat.score,
+    resultat: resultat.resultat,
+    pointsObtenus: resultat.pointsObtenus,
+    pointsTotal: resultat.pointsTotal,
+    seuilReussite: Number(quiz.seuilReussite ?? 0),
+    statutSurveillance: tentative.statutSurveillance || "normal",
+    certificat: certificat || null,
+    details: resultat.details
+  };
+}
+
+async function obtenirHistoriqueTentatives(idApprenant, codeQuiz) {
+  return TentativeQuiz.findAll({
+    where: { idApprenant, codeQuiz },
+    attributes: ["idTentative", "score", "statut", "statutSurveillance"],
+    order: [["idTentative", "ASC"]]
+  });
+}
+
+// CORRECTION : TENTATIVES ILLIMITEES, LE FORMATEUR DECIDE
+async function verifierLimiteTentatives(idApprenant, quiz) {
+  const historique = await obtenirHistoriqueTentatives(idApprenant, quiz.codeQuiz);
+  return {
+    autorise: true,
+    dejaReussi: false,
+    limiteAtteinte: false,
+    tentativesEffectuees: historique.length,
+    nombreTentativesMax: 999999,
+    tentativesIllimitees: true,
+    tentativesRestantes: null
+  };
+}
+
+// =====================================================
+// TENTATIVES DE L'APPRENANT
+// =====================================================
+
+exports.obtenirTentatives = async (req, res) => {
   try {
-    const idApprenant = obtenirIdUtilisateur(req);
-    const { codeQuiz } = req.body;
-
-    if (!codeQuiz) {
-      return res.status(400).json({ message: "codeQuiz est requis." });
-    }
-
-    const quiz = await Quiz.findOne({ where: { codeQuiz: Number(codeQuiz) } });
-    if (!quiz) {
-      return res.status(404).json({ message: "Quiz introuvable." });
-    }
-
-    // 1. S'il y a une tentative EN COURS, on la reprend, on n'en cree pas une 2e
-    const tentativeEnCours = await Tentative.findOne({
-      where: {
-        idApprenant,
-        codeQuiz: Number(codeQuiz),
-        statut: "en_cours",
-      },
-      order: [["dateTentative", "DESC"]],
+    const idApprenant = obtenirIdApprenant(req);
+    if (!idApprenant) return res.status(401).json({ message: "Utilisateur non identifié." });
+    const tentatives = await TentativeQuiz.findAll({
+      where: { idApprenant },
+      include: [{ model: Quiz, as: "quiz" }, { model: Evaluation, as: "evaluation" }],
+      order: [["idTentative", "DESC"]]
     });
+    return res.json({ tentatives });
+  } catch (error) {
+    console.error("Erreur obtenirTentatives :", error);
+    return res.status(500).json({ message: "Impossible de récupérer vos tentatives." });
+  }
+};
 
-    if (tentativeEnCours) {
-      return res.json({
-        message: "Reprise de la tentative en cours.",
-        reprise: true,
-        tentative: tentativeEnCours,
-        quiz,
-        dureeRestante: tentativeEnCours.dureeRestante || null,
-      });
+exports.obtenirTentative = async (req, res) => {
+  try {
+    const idApprenant = obtenirIdApprenant(req);
+    const idTentative = Number(req.params.id);
+    if (!idApprenant || !Number.isInteger(idTentative) || idTentative < 1) return res.status(400).json({ message: "Identifiant invalide." });
+    const tentative = await TentativeQuiz.findOne({
+      where: { idTentative, idApprenant },
+      include: [
+        { model: Quiz, as: "quiz", include: [obtenirQuestionsOptions()] },
+        { model: ReponseApprenant, as: "reponsesApprenant" },
+        { model: Evaluation, as: "evaluation" }
+      ]
+    });
+    if (!tentative) return res.status(404).json({ message: "Tentative introuvable." });
+    const donnees = tentative.toJSON();
+    donnees.quiz = quizPourApprenant(donnees.quiz);
+    const expiration = obtenirDateExpiration(tentative, tentative.quiz);
+    return res.json({ tentative: donnees, expiration, dureeRestante: expiration ? Math.max(0, Math.ceil((expiration.getTime() - Date.now()) / 1000)) : null });
+  } catch (error) {
+    console.error("Erreur obtenirTentative :", error);
+    return res.status(500).json({ message: "Impossible de récupérer cette tentative." });
+  }
+};
+
+// =====================================================
+// COMMENCER OU REPRENDRE UNE TENTATIVE
+// =====================================================
+
+exports.commencerTentative = async (req, res) => {
+  try {
+    const codeQuiz = Number(req.body.codeQuiz);
+    const idApprenant = obtenirIdApprenant(req);
+    if (!idApprenant) return res.status(401).json({ message: "Utilisateur non identifié." });
+    if (!Number.isInteger(codeQuiz) || codeQuiz < 1) return res.status(400).json({ message: "Identifiant du quiz invalide." });
+    const quiz = await chargerQuiz(codeQuiz);
+    if (!quiz) return res.status(404).json({ message: "Quiz introuvable." });
+    if (!quiz.questions?.length) return res.status(400).json({ message: "Ce quiz ne contient aucune question." });
+    const acces = await verifierAccesQuiz(quiz, idApprenant);
+    if (!acces.autorise) return res.status(403).json({ message: acces.message, progression: acces.progression || null });
+
+    let tentative = await TentativeQuiz.findOne({ where: { idApprenant, codeQuiz, statut: "en_cours" }, order: [["idTentative", "DESC"]] });
+
+    if (tentative && estExpiree(tentative, quiz)) {
+      const transaction = await sequelize.transaction();
+      try {
+        const tentativeVerrouillee = await TentativeQuiz.findByPk(tentative.idTentative, { transaction, lock: transaction.LOCK.UPDATE });
+        if (tentativeVerrouillee.statut === "en_cours") {
+          const resultat = await terminerEtEnregistrer(tentativeVerrouillee, quiz, transaction);
+          await transaction.commit();
+          return res.status(409).json({ ...construireReponseResultat({ tentative: tentativeVerrouillee, quiz, resultat, certificat: resultat.certificat, message: "Le temps de cette tentative est écoulé." }), tentativeTerminee: true });
+        }
+        await transaction.commit();
+        return res.status(409).json({ message: "Cette tentative est déjà terminée.", tentativeTerminee: true });
+      } catch (error) {
+        if (!transaction.finished) await transaction.rollback();
+        throw error;
+      }
     }
 
-    // 2. On regarde la derniere tentative terminee, juste pour info
-    // ON NE BLOQUE PAS, meme si reussie, meme si certificat valide/refuse.
-    const derniereTentative = await Tentative.findOne({
-      where: {
-        idApprenant,
-        codeQuiz: Number(codeQuiz),
-        statut: { [Op.ne]: "en_cours" },
-      },
-      order: [["dateTentative", "DESC"]],
+    if (!tentative) {
+      const limite = await verifierLimiteTentatives(idApprenant, quiz);
+      if (!limite.autorise) return res.status(403).json({ message: limite.message, dejaReussi: limite.dejaReussi, limiteAtteinte: limite.limiteAtteinte, tentativesEffectuees: limite.tentativesEffectuees, nombreTentativesMax: limite.nombreTentativesMax });
+    }
+
+    const reprise = Boolean(tentative);
+    if (!tentative) {
+      tentative = await TentativeQuiz.create({ idApprenant, codeQuiz, dateTentative: new Date(), score: 0, statut: "en_cours", statutSurveillance: "normal", nbSortiesEcran: 0, estEnLigne: true });
+    }
+    const expiration = obtenirDateExpiration(tentative, quiz);
+    const reponsesSauvegardees = await ReponseApprenant.findAll({ where: { idTentative: tentative.idTentative } });
+    const limite = await verifierLimiteTentatives(idApprenant, quiz);
+    return res.status(reprise ? 200 : 201).json({
+      message: reprise ? "Votre ancienne tentative a été récupérée." : "Tentative commencée.",
+      reprise,
+      tentative,
+      quiz: quizPourApprenant(quiz),
+      reponsesSauvegardees,
+      expiration,
+      dureeRestante: expiration ? Math.max(0, Math.ceil((expiration.getTime() - Date.now()) / 1000)) : null,
+      nombreTentativesMax: obtenirNombreTentativesMax(quiz),
+      tentativesIllimitees: tentativesIllimitees(quiz),
+      tentativesEffectuees: limite.tentativesEffectuees,
+      tentativesRestantes: limite.tentativesRestantes
     });
+  } catch (error) {
+    console.error("Erreur commencerTentative :", error);
+    return res.status(500).json({ message: error.message || "Impossible de commencer le quiz." });
+  }
+};
 
-    // 3. Si la derniere tentative avait un certificat REFUSE,
-    // on prepare le retour en en_attente si la nouvelle tentative reussit.
-    // On ne bloque rien ici.
+// =====================================================
+// SAUVEGARDER LES RÉPONSES
+// =====================================================
 
-    // 4. Creation d'une NOUVELLE tentative, toujours autorisee
-    const nouvelleTentative = await Tentative.create({
-      idApprenant,
-      codeQuiz: Number(codeQuiz),
-      dateTentative: new Date(),
-      score: 0,
-      statut: "en_cours",
+exports.enregistrerReponses = async (req, res) => {
+  let transaction;
+  try {
+    transaction = await sequelize.transaction();
+    const idTentative = Number(req.params.id);
+    const idApprenant = obtenirIdApprenant(req);
+    if (!idApprenant || !Number.isInteger(idTentative) || idTentative < 1) throw new Error("Identifiant de tentative invalide.");
+    const donneesReponses = Array.isArray(req.body.reponses) ? req.body.reponses : [req.body];
+    const reponsesNormalisees = normaliserReponses(donneesReponses);
+    if (!reponsesNormalisees.length) throw new Error("Aucune réponse à enregistrer.");
+    const questionsVues = new Set();
+    for (const item of reponsesNormalisees) {
+      if (!Number.isInteger(item.numQuestion) || item.numQuestion < 1 || questionsVues.has(item.numQuestion)) throw new Error("Identifiant de question invalide.");
+      questionsVues.add(item.numQuestion);
+    }
+    const tentative = await TentativeQuiz.findOne({ where: { idTentative, idApprenant }, transaction, lock: transaction.LOCK.UPDATE });
+    if (!tentative) throw new Error("Tentative introuvable.");
+    if (tentative.statut !== "en_cours") throw new Error("Cette tentative est déjà terminée.");
+    const quiz = await chargerQuiz(tentative.codeQuiz, transaction);
+    if (!quiz) throw new Error("Quiz introuvable.");
+    const acces = await verifierAccesQuiz(quiz, idApprenant, transaction);
+    if (!acces.autorise) throw new Error(acces.message);
+    if (estExpiree(tentative, quiz)) {
+      const resultat = await terminerEtEnregistrer(tentative, quiz, transaction);
+      await transaction.commit();
+      transaction = null;
+      return res.status(409).json({ ...construireReponseResultat({ tentative, quiz, resultat, certificat: resultat.certificat, message: "Le temps du quiz est écoulé." }), tentativeTerminee: true });
+    }
+    for (const item of reponsesNormalisees) {
+      await enregistrerUneQuestion({ idTentative, numQuestion: item.numQuestion, numReponses: item.numReponses, quiz, transaction });
+    }
+    await tentative.update({
       derniereActivite: new Date(),
-      estEnLigne: 1,
-      nbSortiesEcran: 0,
-      nbReponsesDonnees: 0,
-      questionActuelle: 1,
-    });
+      estEnLigne: true,
+      questionActuelle: reponsesNormalisees[reponsesNormalisees.length - 1].numQuestion,
+      nbReponsesDonnees: await ReponseApprenant.count({ where: { idTentative }, transaction })
+    }, { transaction });
+    await transaction.commit();
+    transaction = null;
+    return res.json({ message: "Réponses sauvegardées avec succès.", idTentative, reponses: reponsesNormalisees });
+  } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
+    console.error("Erreur enregistrerReponses :", error);
+    const status = error.message === "Tentative introuvable." ? 404 : error.message === "Cette tentative est déjà terminée." ? 409 : 400;
+    return res.status(status).json({ message: error.message || "Impossible de sauvegarder les réponses." });
+  }
+};
 
-    // On renvoie le quiz avec ses questions pour l'affichage
-    let quizComplet = quiz.toJSON ? quiz.toJSON() : quiz;
+// =====================================================
+// SOUMETTRE UNE TENTATIVE
+// =====================================================
+
+exports.soumettreTentative = async (req, res) => {
+  let transaction;
+  try {
+    transaction = await sequelize.transaction();
+    const idTentative = Number(req.params.id);
+    const idApprenant = obtenirIdApprenant(req);
+    if (!idApprenant || !Number.isInteger(idTentative) || idTentative < 1) throw new Error("Identifiant de tentative invalide.");
+    const tentative = await TentativeQuiz.findOne({ where: { idTentative, idApprenant }, transaction, lock: transaction.LOCK.UPDATE });
+    if (!tentative) {
+      await transaction.rollback();
+      transaction = null;
+      return res.status(404).json({ message: "Tentative introuvable." });
+    }
+    const quiz = await chargerQuiz(tentative.codeQuiz, transaction);
+    if (!quiz) throw new Error("Quiz introuvable.");
+    if (tentative.statut === "terminee") {
+      const resultat = await calculerResultat(tentative, quiz, transaction);
+      const evaluation = await Evaluation.findOne({ where: { idTentative }, transaction });
+      const numFormation = await obtenirFormationDuQuiz(quiz, transaction);
+      const certificat = quiz.typeQuiz === "final" && numFormation ? await Certificat.findOne({ where: { idApprenant, numFormation }, transaction }) : null;
+      await transaction.commit();
+      transaction = null;
+      return res.json(construireReponseResultat({ tentative, quiz, resultat: { ...resultat, score: evaluation ? Number(evaluation.score) : resultat.score, resultat: evaluation?.resultat || resultat.resultat }, certificat, message: "Quiz déjà soumis." }));
+    }
+    const acces = await verifierAccesQuiz(quiz, idApprenant, transaction);
+    if (!acces.autorise) throw new Error(acces.message);
+    if (req.body.reponses !== undefined) {
+      const reponses = normaliserReponses(req.body.reponses);
+      const questionsVues = new Set();
+      for (const item of reponses) {
+        if (!Number.isInteger(item.numQuestion) || item.numQuestion < 1 || questionsVues.has(item.numQuestion)) throw new Error("Liste de réponses invalide.");
+        questionsVues.add(item.numQuestion);
+        await enregistrerUneQuestion({ idTentative, numQuestion: item.numQuestion, numReponses: item.numReponses, quiz, transaction });
+      }
+    }
+    const resultat = await terminerEtEnregistrer(tentative, quiz, transaction);
+    await tentative.update({ estEnLigne: false, derniereActivite: new Date() }, { transaction });
+    await transaction.commit();
+    transaction = null;
+    return res.json(construireReponseResultat({ tentative, quiz, resultat, certificat: resultat.certificat, message: "Quiz soumis avec succès." }));
+  } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
+    console.error("Erreur soumettreTentative :", error);
+    return res.status(400).json({ message: error.message || "Impossible de soumettre le quiz." });
+  }
+};
+
+// =====================================================
+// TENTATIVES DU FORMATEUR
+// =====================================================
+
+exports.obtenirTentativesFormateur = async (req, res) => {
+  try {
+    const idFormateur = obtenirIdApprenant(req);
+    if (!idFormateur) return res.status(401).json({ message: "Utilisateur non identifié." });
+    const quizFormateur = await Quiz.findAll({ where: { idFormateur }, attributes: ["codeQuiz"], raw: true });
+    const codesQuiz = quizFormateur.map(q => Number(q.codeQuiz)).filter(n => Number.isInteger(n) && n > 0);
+    if (!codesQuiz.length) return res.json({ tentatives: [] });
+    const tentativesBrutes = await TentativeQuiz.findAll({ where: { codeQuiz: { [Op.in]: codesQuiz } }, order: [["dateTentative", "DESC"], ["idTentative", "DESC"]] });
+    if (!tentativesBrutes.length) return res.json({ tentatives: [] });
+    const idsTentatives = tentativesBrutes.map(t => Number(t.idTentative)).filter(n => n > 0);
+    const idsApprenants = [...new Set(tentativesBrutes.map(t => Number(t.idApprenant)).filter(n => n > 0))];
+    const codesQuizTentatives = [...new Set(tentativesBrutes.map(t => Number(t.codeQuiz)).filter(n => n > 0))];
+    const [quizzes, apprenants, evaluations, reponses, modules] = await Promise.all([
+      Quiz.findAll({ where: { codeQuiz: { [Op.in]: codesQuizTentatives } } }),
+      Utilisateur.findAll({ where: { idUtilisateur: { [Op.in]: idsApprenants } }, attributes: ["idUtilisateur", "nom", "prenom", "email"] }),
+      Evaluation.findAll({ where: { idTentative: { [Op.in]: idsTentatives } } }),
+      ReponseApprenant.findAll({ where: { idTentative: { [Op.in]: idsTentatives } }, attributes: ["idTentative", "numQuestion"] }),
+      Module.findAll()
+    ]);
+    const mapQuiz = new Map(quizzes.map(q => [Number(q.codeQuiz), q]));
+    const mapApprenants = new Map(apprenants.map(a => [Number(a.idUtilisateur), a]));
+    const mapEvaluations = new Map(evaluations.map(e => [Number(e.idTentative), e]));
+    const mapModules = new Map(modules.map(m => [Number(m.codeModule), m]));
+    const numFormations = [...new Set(quizzes.map(q => { const module = q.codeModule ? mapModules.get(Number(q.codeModule)) : null; return Number(q.numFormation || module?.numFormation); }).filter(n => Number.isInteger(n) && n > 0))];
+    const formations = numFormations.length ? await Formation.findAll({ where: { numFormation: { [Op.in]: numFormations } } }) : [];
+    const mapFormations = new Map(formations.map(f => [Number(f.numFormation), f]));
+    const certificats = (idsApprenants.length && numFormations.length) ? await Certificat.findAll({ where: { idApprenant: { [Op.in]: idsApprenants }, numFormation: { [Op.in]: numFormations } } }) : [];
+    const mapCertificats = new Map(certificats.map(c => [`${Number(c.idApprenant)}-${Number(c.numFormation)}`, c]));
+    const repondues = new Map();
+    for (const r of reponses) {
+      const id = Number(r.idTentative);
+      if (!repondues.has(id)) repondues.set(id, new Set());
+      repondues.get(id).add(Number(r.numQuestion));
+    }
+    let activites = [];
     try {
-      const quizAvecQuestions = await Quiz.findOne({
-        where: { codeQuiz: Number(codeQuiz) },
-        include: [{ model: Question, as: "questions", required: false }],
-      });
-      if (quizAvecQuestions) quizComplet = quizAvecQuestions.toJSON();
-    } catch (e) {}
-
-    return res.status(201).json({
-      message: derniereTentative
-        ? "Nouvelle tentative creee. Vous pouvez reprendre ce quiz."
-        : "Tentative creee.",
-      reprise: false,
-      tentative: nouvelleTentative,
-      quiz: quizComplet,
-      dureeRestante: quizComplet.duree ? Number(quizComplet.duree) * 60 : null,
-    });
-  } catch (error) {
-    console.error("creerTentative:", error);
-    return res.status(500).json({ message: "Impossible de demarrer le quiz." });
-  }
-}
-
-// ================= SAUVEGARDER REPONSES EN COURS =================
-// PATCH /api/apprenant/tentatives/:id/reponses
-async function sauvegarderReponses(req, res) {
-  try {
-    const idApprenant = obtenirIdUtilisateur(req);
-    const { id } = req.params;
-    const { reponses } = req.body;
-
-    const tentative = await Tentative.findOne({
-      where: { idTentative: id, idApprenant },
-    });
-    if (!tentative) return res.status(404).json({ message: "Tentative introuvable." });
-    if (tentative.statut !== "en_cours") {
-      return res.status(409).json({ message: "Tentative deja terminee.", tentativeTerminee: true, tentative });
+      activites = await ActiviteTentative.findAll({ where: { idTentative: { [Op.in]: idsTentatives } }, order: [["dateActivite", "ASC"], ["idActivite", "ASC"]] });
+    } catch (activityError) {
+      console.error("Erreur de récupération des activités de tentative :", activityError.message);
+      activites = [];
     }
-
-    await tentative.update({
-      derniereActivite: new Date(),
-      nbReponsesDonnees: Array.isArray(reponses) ? reponses.length : tentative.nbReponsesDonnees,
-      reponsesSauvegardees: reponses || [],
+    const activitesParTentative = new Map();
+    for (const a of activites) {
+      const id = Number(a.idTentative);
+      if (!activitesParTentative.has(id)) activitesParTentative.set(id, []);
+      activitesParTentative.get(id).push(a);
+    }
+    const resultat = tentativesBrutes.map(tentative => {
+      const donnees = tentative.toJSON();
+      const quiz = mapQuiz.get(Number(tentative.codeQuiz));
+      const module = quiz?.codeModule ? mapModules.get(Number(quiz.codeModule)) : null;
+      const numFormation = Number(quiz?.numFormation || module?.numFormation) || null;
+      const formation = numFormation ? mapFormations.get(numFormation) : null;
+      const nbQuestions = quiz?.nbQuestions ? Number(quiz.nbQuestions) : 0;
+      const reponsesTentative = repondues.get(Number(tentative.idTentative)) || new Set();
+      const nbReponses = reponsesTentative.size;
+      const termine = tentative.statut === "terminee";
+      const progression = termine ? 100 : nbQuestions ? Math.min(100, Math.round(nbReponses / nbQuestions * 100)) : 0;
+      const evenements = activitesParTentative.get(Number(tentative.idTentative)) || [];
+      const sorties = evenements.filter(e => TYPES_SORTIE.includes(e.type));
+      const derniere = evenements[evenements.length - 1] || null;
+      const tempsHorsEcran = evenements.filter(e => e.type === "retour").reduce((total, e) => total + Number(e.dureeSecondes || 0), 0);
+      const evaluation = mapEvaluations.get(Number(tentative.idTentative));
+      const certificat = numFormation ? mapCertificats.get(`${Number(tentative.idApprenant)}-${numFormation}`) || null : null;
+      return {
+        ...donnees,
+        statutSurveillance: tentative.statutSurveillance || "normal",
+        quiz: quiz ? { codeQuiz: quiz.codeQuiz, nomQuiz: quiz.nomQuiz, typeQuiz: quiz.typeQuiz, seuilReussite: quiz.seuilReussite, duree: quiz.duree, codeModule: quiz.codeModule, numFormation: quiz.numFormation, nombreTentativesMax: quiz.nombreTentativesMax, tentativesIllimitees: quiz.tentativesIllimitees, nbQuestions } : null,
+        evaluation: evaluation || null,
+        apprenant: mapApprenants.get(Number(tentative.idApprenant)) || null,
+        formation: formation ? { numFormation: formation.numFormation, titre: formation.titre } : null,
+        moduleInfo: module ? { codeModule: module.codeModule, titreModule: module.titreModule } : null,
+        certificat: certificat ? certificat.toJSON() : null,
+        idCertificat: certificat ? certificat.idCertificat : null,
+        statutCertificat: certificat ? certificat.statutCertificat : "en_attente",
+        nbQuestions,
+        nbReponses,
+        progression,
+        nbSorties: sorties.length,
+        tempsHorsEcran,
+        horsEcran: !termine && Boolean(derniere) && derniere.type !== "retour",
+        derniereActivite: derniere ? derniere.dateActivite : tentative.derniereActivite || null,
+        activites: evenements.slice(-30).reverse().map(e => ({ idActivite: e.idActivite, type: e.type, dateActivite: e.dateActivite, dureeSecondes: e.dureeSecondes }))
+      };
     });
-
-    return res.json({ message: "Reponses sauvegardees.", tentative });
+    return res.json({ tentatives: resultat });
   } catch (error) {
-    console.error("sauvegarderReponses:", error);
-    return res.status(500).json({ message: "Impossible de sauvegarder." });
+    console.error("Erreur obtenirTentativesFormateur :", error);
+    return res.status(500).json({ message: "Impossible de récupérer les résultats des apprenants.", erreur: error.message, detail: error.original?.message || null, sql: error.sql || null });
   }
-}
+};
 
-// ================= ACTIVITE / SURVEILLANCE =================
-// POST /api/apprenant/tentatives/:id/activite  { type, dureeSecondes }
-async function enregistrerActivite(req, res) {
+// =====================================================
+// VALIDATION CERTIFICAT DEPUIS TENTATIVE
+// PATCH /formateur/tentatives/:id/certificat
+// =====================================================
+
+exports.validerCertificatTentative = async (req, res) => {
+  let transaction;
   try {
-    const idApprenant = obtenirIdUtilisateur(req);
-    const { id } = req.params;
-    const { type, dureeSecondes } = req.body;
-
-    const tentative = await Tentative.findOne({
-      where: { idTentative: id, idApprenant },
+    const idFormateur = obtenirIdApprenant(req);
+    const idTentative = Number(req.params.id);
+    const decision = String(req.body?.decision || "");
+    if (!idFormateur) return res.status(401).json({ message: "Utilisateur non identifié." });
+    if (!Number.isInteger(idTentative) || idTentative <= 0) return res.status(400).json({ message: "Identifiant de tentative invalide." });
+    if (!["valider", "refuser"].includes(decision)) return res.status(400).json({ message: "Décision invalide. Utilisez 'valider' ou 'refuser'." });
+    transaction = await sequelize.transaction();
+    const tentative = await TentativeQuiz.findByPk(idTentative, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!tentative) { await transaction.rollback(); transaction = null; return res.status(404).json({ message: "Tentative introuvable." }); }
+    const quiz = await Quiz.findOne({ where: { codeQuiz: tentative.codeQuiz, idFormateur }, transaction });
+    if (!quiz) { await transaction.rollback(); transaction = null; return res.status(403).json({ message: "Vous ne pouvez pas traiter cette tentative." }); }
+    if (tentative.statut !== "terminee") { await transaction.rollback(); transaction = null; return res.status(409).json({ message: "La tentative doit être terminée avant la validation du certificat." }); }
+    const evaluation = await Evaluation.findOne({ where: { idTentative }, transaction });
+    if (evaluation?.resultat !== "reussi") { await transaction.rollback(); transaction = null; return res.status(400).json({ message: "L'apprenant n'a pas encore réussi cette évaluation." }); }
+    const numFormation = await obtenirFormationDuQuiz(quiz, transaction);
+    if (!numFormation) { await transaction.rollback(); transaction = null; return res.status(400).json({ message: "Formation introuvable pour cette tentative." }); }
+    const nouveauStatut = decision === "valider" ? "validee" : "annulee";
+    let certificat = await Certificat.findOne({ where: { idApprenant: tentative.idApprenant, numFormation }, transaction, lock: transaction.LOCK.UPDATE });
+    if (certificat) {
+      if (certificat.statutCertificat === "validee" && nouveauStatut === "validee") { await transaction.rollback(); transaction = null; return res.status(409).json({ message: "Ce certificat est déjà validé." }); }
+      await certificat.update({ statutCertificat: nouveauStatut, idFormateur: quiz.idFormateur }, { transaction });
+    } else {
+      certificat = await creerCertificatDirectSiAbsent(tentative.idApprenant, numFormation, quiz.idFormateur, nouveauStatut, transaction);
+    }
+    await transaction.commit();
+    transaction = null;
+    return res.status(200).json({
+      message: nouveauStatut === "validee" ? "Certificat validé avec succès. L'apprenant peut maintenant le télécharger." : "Certificat refusé.",
+      certificat
     });
+  } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
+    console.error("Erreur validerCertificatTentative :", error);
+    return res.status(500).json({ message: "Impossible de traiter le certificat.", erreur: error.message });
+  }
+};
+
+// =====================================================
+// VALIDATION / INVALIDATION DE LA SURVEILLANCE
+// PATCH /tentatives/:id/surveillance
+// =====================================================
+
+exports.modifierStatutSurveillance = async (req, res) => {
+  let transaction;
+  try {
+    const idFormateur = obtenirIdApprenant(req);
+    const idTentative = Number(req.params.id);
+    const statutSurveillance = String(req.body?.statutSurveillance || "");
+    if (!idFormateur) return res.status(401).json({ message: "Utilisateur non identifié." });
+    if (!Number.isInteger(idTentative) || idTentative <= 0) return res.status(400).json({ message: "Identifiant de tentative invalide." });
+    if (!["validee", "invalidee"].includes(statutSurveillance)) return res.status(400).json({ message: "Le statut doit être validee ou invalidee." });
+    transaction = await sequelize.transaction();
+    const tentative = await TentativeQuiz.findByPk(idTentative, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!tentative) { await transaction.rollback(); transaction = null; return res.status(404).json({ message: "Tentative introuvable." }); }
+    const quiz = await Quiz.findOne({ where: { codeQuiz: tentative.codeQuiz, idFormateur }, transaction });
+    if (!quiz) { await transaction.rollback(); transaction = null; return res.status(403).json({ message: "Vous ne pouvez pas traiter cette tentative." }); }
+    if (tentative.statut !== "terminee") { await transaction.rollback(); transaction = null; return res.status(409).json({ message: "La tentative doit être terminée avant sa validation." }); }
+    const ancienStatut = tentative.statutSurveillance || "normal";
+    if (!["a_verifier", "normal"].includes(ancienStatut)) { await transaction.rollback(); transaction = null; return res.status(409).json({ message: "Cette tentative a déjà été traitée." }); }
+    await tentative.update({ statutSurveillance }, { transaction });
+    let certificat = null;
+    if (statutSurveillance === "validee") {
+      const evaluation = await Evaluation.findOne({ where: { idTentative }, transaction });
+      if (evaluation?.resultat === "reussi" && quiz.typeQuiz === "final") {
+        const numFormation = await obtenirFormationDuQuiz(quiz, transaction);
+        if (numFormation) certificat = await creerDemandeCertificatSiAdmissible(tentative.idApprenant, numFormation, quiz.idFormateur, transaction);
+      }
+    }
+    await transaction.commit();
+    transaction = null;
+    return res.status(200).json({ message: statutSurveillance === "validee" ? "Tentative validée par le formateur." : "Tentative invalidée par le formateur.", tentative, statutSurveillance, certificat });
+  } catch (error) {
+    if (transaction && !transaction.finished) await transaction.rollback();
+    console.error("Erreur modifierStatutSurveillance :", error);
+    return res.status(500).json({ message: "Impossible de modifier le statut de surveillance.", erreur: error.message });
+  }
+};
+
+// =====================================================
+// ACTIVITE / SURVEILLANCE - MANQUAIT, CA FAISAIT PLANTER LE SERVEUR
+// POST /tentatives/:id/activite
+// =====================================================
+exports.enregistrerActivite = async (req, res) => {
+  try {
+    const idApprenant = obtenirIdApprenant(req);
+    const idTentative = Number(req.params.id);
+    const type = String(req.body?.type || "");
+    if (!idApprenant || !Number.isInteger(idTentative) || idTentative < 1) {
+      return res.status(400).json({ message: "Identifiant invalide." });
+    }
+    const tentative = await TentativeQuiz.findOne({ where: { idTentative, idApprenant } });
     if (!tentative) return res.status(404).json({ message: "Tentative introuvable." });
-
-    const estSortie = String(type || "").includes("sortie") || type === "sortie_onglet" || type === "sortie_fenetre";
-
+    const estSortie = TYPES_SORTIE.includes(type);
+    try {
+      await ActiviteTentative.create({
+        idTentative,
+        type,
+        dateActivite: new Date(),
+        dureeSecondes: Number(req.body?.dureeSecondes || 0)
+      });
+    } catch (e) {}
     await tentative.update({
       derniereActivite: new Date(),
-      estEnLigne: type === "retour" ? 1 : tentative.estEnLigne,
+      estEnLigne: type === "retour" ? true : tentative.estEnLigne,
       nbSortiesEcran: estSortie ? (tentative.nbSortiesEcran || 0) + 1 : tentative.nbSortiesEcran,
       derniereSortie: estSortie ? new Date() : tentative.derniereSortie,
+      statutSurveillance: estSortie && (tentative.statutSurveillance === "normal") ? "a_verifier" : tentative.statutSurveillance
     });
-
     return res.json({ message: "Activite enregistree." });
   } catch (error) {
+    console.error("Erreur enregistrerActivite :", error);
     return res.json({ message: "Activite ignoree." });
   }
-}
-
-// ================= SOUMETTRE =================
-// POST /api/apprenant/tentatives/:id/soumettre  { reponses: [{numQuestion, numReponses}] }
-async function soumettreTentative(req, res) {
-  try {
-    const idApprenant = obtenirIdUtilisateur(req);
-    const { id } = req.params;
-    const { reponses } = req.body;
-
-    const tentative = await Tentative.findOne({
-      where: { idTentative: id, idApprenant },
-    });
-    if (!tentative) return res.status(404).json({ message: "Tentative introuvable." });
-
-    if (tentative.statut !== "en_cours") {
-      return res.status(409).json({
-        message: "Tentative deja terminee.",
-        tentativeTerminee: true,
-        tentative,
-        score: tentative.score,
-      });
-    }
-
-    const quiz = await Quiz.findOne({ where: { codeQuiz: tentative.codeQuiz } });
-    if (!quiz) return res.status(404).json({ message: "Quiz introuvable." });
-
-    // --- Calcul du score ---
-    // On recupere les questions avec bonnes reponses via sequelize.models
-    let questions = [];
-    try {
-      const ReponseModel = sequelize.models.Reponse || sequelize.models.reponse;
-      const qs = await Question.findAll({ where: { codeQuiz: tentative.codeQuiz } });
-      for (const q of qs) {
-        const reps = await ReponseModel.findAll({ where: { numQuestion: q.numQuestion } });
-        questions.push({ question: q.toJSON(), reponses: reps.map((r) => r.toJSON()) });
-      }
-    } catch (e) {
-      questions = [];
-    }
-
-    let pointsObtenus = 0;
-    let pointsTotal = questions.length || 0;
-    const reponsesMap = {};
-    (reponses || []).forEach((r) => {
-      reponsesMap[Number(r.numQuestion)] = (r.numReponses || []).map(Number);
-    });
-
-    questions.forEach((item, index) => {
-      const numQ = item.question.numQuestion ?? index + 1;
-      const bonnes = item.reponses.filter((r) => r.estCorrecte === true || r.estCorrect === true || r.correcte === true).map((r) => Number(r.numReponse));
-      const donnees = reponsesMap[Number(numQ)] || [];
-      const ok = bonnes.length > 0 && bonnes.length === donnees.length && bonnes.every((b) => donnees.includes(b));
-      if (ok) pointsObtenus += 1;
-    });
-
-    const score = pointsTotal > 0 ? Math.round((pointsObtenus / pointsTotal) * 100) : 0;
-    const seuil = Number(quiz.seuilReussite || 50);
-    const reussi = score >= seuil;
-
-    await tentative.update({
-      score,
-      statut: "termine",
-      dateTentative: tentative.dateTentative,
-      derniereActivite: new Date(),
-      estEnLigne: 0,
-    });
-
-    // --- Gestion certificat ---
-    // Si reussi : certificat passe / repasse en en_attente, meme si avant il etait refuse.
-    // Si echoue : on ne touche pas au certificat, l'apprenant peut juste reprendre.
-    let certificat = null;
-    if (reussi && Certificat) {
-      // On cherche le certificat lie a cette formation / tentative / apprenant
-      const whereCert = { idApprenant };
-      // On essaie de lier par codeQuiz si la colonne existe
-      try {
-        certificat = await Certificat.findOne({
-          where: whereCert,
-          order: [["dateCertificat", "DESC"]],
-        });
-      } catch (e) {
-        certificat = null;
-      }
-
-      if (certificat) {
-        // CAS CLE : refuse -> en_attente sur nouvelle reussite
-        await certificat.update({
-          statut: "en_attente",
-          statutCertificat: "en_attente",
-          score: score,
-          idTentative: tentative.idTentative,
-        });
-      } else {
-        try {
-          certificat = await Certificat.create({
-            idApprenant,
-            codeQuiz: tentative.codeQuiz,
-            idTentative: tentative.idTentative,
-            score,
-            statut: "en_attente",
-            statutCertificat: "en_attente",
-            dateCertificat: new Date(),
-          });
-        } catch (e) {
-          // Si la table certificat a d'autres colonnes obligatoires, on ignore, le formateur verra la tentative
-          certificat = null;
-        }
-      }
-    }
-
-    return res.json({
-      message: reussi ? "Quiz reussi. En attente de validation du formateur." : "Quiz termine. Seuil non atteint, vous pouvez reprendre.",
-      resultat: reussi ? "reussi" : "echoue",
-      reussi,
-      score,
-      seuilReussite: seuil,
-      pointsObtenus,
-      pointsTotal,
-      nomQuiz: quiz.nomQuiz,
-      quiz,
-      tentative,
-      certificat,
-      // Pour que la page apprenant sache que ce n'est PAS un blocage
-      peutReprendre: true,
-      certificatRefuse: false,
-    });
-  } catch (error) {
-    console.error("soumettreTentative:", error);
-    return res.status(500).json({ message: "Impossible de soumettre le quiz." });
-  }
-}
-
-// ================= FORMATEUR : VALIDER / REFUSER CERTIFICAT =================
-// PATCH /api/formateur/tentatives/:id/certificat  { action: "valider" | "refuser" } ou { statut: "valide" | "refuse" }
-async function validerCertificatTentative(req, res) {
-  try {
-    const { id } = req.params;
-    const action = String(req.body.action || req.body.statut || "").toLowerCase();
-
-    const tentative = await Tentative.findOne({ where: { idTentative: id } });
-    if (!tentative) return res.status(404).json({ message: "Tentative introuvable." });
-
-    const veutValider = action === "valider" || action === "valide" || action === "accepte" || action === "accepter";
-    const veutRefuser = action === "refuser" || action === "refuse" || action === "rejete" || action === "rejeter";
-
-    if (!veutValider && !veutRefuser) {
-      return res.status(400).json({ message: "Action invalide. Utilisez valider ou refuser." });
-    }
-
-    const nouveauStatut = veutValider ? "valide" : "refuse";
-
-    // On met a jour la tentative
-    await tentative.update({
-      statutCertificat: nouveauStatut,
-      statut: tentative.statut, // on ne change pas termine -> reste termine
-    });
-
-    // On met a jour le certificat lie
-    if (Certificat) {
-      try {
-        const cert = await Certificat.findOne({
-          where: { idTentative: tentative.idTentative },
-          order: [["dateCertificat", "DESC"]],
-        });
-        if (cert) {
-          await cert.update({ statut: nouveauStatut, statutCertificat: nouveauStatut });
-        } else if (veutValider || veutRefuser) {
-          // Si pas de certificat, on en cree un pour garder la trace du refus
-          await Certificat.create({
-            idApprenant: tentative.idApprenant,
-            codeQuiz: tentative.codeQuiz,
-            idTentative: tentative.idTentative,
-            score: tentative.score,
-            statut: nouveauStatut,
-            statutCertificat: nouveauStatut,
-            dateCertificat: new Date(),
-          });
-        }
-      } catch (e) {}
-    }
-
-    return res.json({
-      message: veutValider
-        ? "Certificat valide. L'apprenant peut telecharger son certificat."
-        : "Certificat refuse. L'apprenant peut reprendre le meme quiz.",
-      tentative,
-      statutCertificat: nouveauStatut,
-      peutReprendre: true,
-    });
-  } catch (error) {
-    console.error("validerCertificatTentative:", error);
-    return res.status(500).json({ message: "Impossible de mettre a jour le certificat." });
-  }
-}
-
-// ================= LISTE TENTATIVES APPRENANT =================
-async function listerMesTentatives(req, res) {
-  try {
-    const idApprenant = obtenirIdUtilisateur(req);
-    const tentatives = await Tentative.findAll({
-      where: { idApprenant },
-      order: [["dateTentative", "DESC"]],
-    });
-    return res.json(tentatives);
-  } catch (error) {
-    return res.status(500).json({ message: "Impossible de charger les tentatives." });
-  }
-}
-
-module.exports = {
-  creerTentative,
-  demarrerTentative: creerTentative,
-  sauvegarderReponses,
-  enregistrerActivite,
-  soumettreTentative,
-  validerCertificatTentative,
-  listerMesTentatives,
 };
+
+// =====================================================
+// EXPORT DE LA VÉRIFICATION D'ACCÈS
+// =====================================================
+
+exports.verifierAccesQuiz = verifierAccesQuiz;
