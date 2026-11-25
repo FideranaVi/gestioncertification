@@ -20,8 +20,20 @@ async function lireReponse(response) {
   try { return await response.json(); } catch { return {}; }
 }
 
+function lireRoleToken() {
+  try {
+    const token = getToken();
+    if (!token) return "?";
+    const payload = token.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = atob(base64);
+    const bytes = Uint8Array.from(decoded, (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes)).role || "?";
+  } catch { return "?"; }
+}
+
+// ===== SEULE FONCTION REMPLACÉE =====
 // CONFORME BACKEND : GET /api/admin/utilisateurs?search=&role=administrateur&limit=100
-// FIX SWR : on ne déstructure plus la clé, on reçoit (recherche, roleFiltre) directement
 async function chargerUtilisateurs(recherche = "", roleFiltre = "") {
   const token = getToken();
   if (!token) throw new Error("Session expirée. Veuillez vous reconnecter.");
@@ -37,7 +49,13 @@ async function chargerUtilisateurs(recherche = "", roleFiltre = "") {
   });
   const data = await lireReponse(response);
   if (!response.ok) {
-    if (response.status === 403) throw new Error(`Accès interdit (403). Vérifie que tu es bien connecté en admin et que le backend est redéployé. | ${data.message || ""}`);
+    if (response.status === 403) {
+      throw new Error(
+        `Accès interdit (403). Ton token dit role="${lireRoleToken()}". ` +
+        `Si ce n'est pas admin, reconnecte-toi avec le compte admin. ` +
+        `Si c'est admin, le backend sur Render n'est PAS encore redéployé avec le nouvel authMiddleware. | ${data.message || ""}`
+      );
+    }
     throw new Error(`HTTP ${response.status} : ${data.message || "Impossible de charger les utilisateurs."}`);
   }
   if (Array.isArray(data)) return data;
@@ -46,6 +64,7 @@ async function chargerUtilisateurs(recherche = "", roleFiltre = "") {
   if (Array.isArray(data.data)) return data.data;
   return [];
 }
+// ===== FIN REMPLACEMENT =====
 
 function getIdUtilisateur(user) { return user?.idUtilisateur ?? user?.id ?? user?.id_utilisateur ?? null; }
 
@@ -99,9 +118,6 @@ export default function AdminUtilisateursPage() {
   const [erreurSuppression, setErreurSuppression] = useState("");
   const [succesSuppression, setSuccesSuppression] = useState("");
 
-  // FIX SWR : on passe une flèche () => chargerUtilisateurs(recherche, roleFiltre)
-  // Avant, SWR envoyait ("admin-utilisateurs", recherche, roleFiltre) et la fonction
-  // prenait [, recherche, roleFiltre] sur "admin-utilisateurs" -> recherche="d", role="m" -> 400 Rôle invalide
   const { data, error, isLoading, mutate } = useSWR(
     ["admin-utilisateurs", recherche, roleFiltre],
     () => chargerUtilisateurs(recherche, roleFiltre),
