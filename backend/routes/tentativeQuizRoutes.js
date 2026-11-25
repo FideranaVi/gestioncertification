@@ -1,4 +1,3 @@
-
 const express = require("express");
 const router = express.Router();
 
@@ -9,11 +8,23 @@ const {
   verifierRole
 } = require("../middlewares/authMiddleware");
 
+router.use(authMiddleware);
+
 // ======================================================
-// AUTHENTIFICATION
+// ROUTES FORMATEUR - TOUJOURS AVANT /:id
 // ======================================================
 
-router.use(authMiddleware);
+router.get(
+  "/formateur",
+  verifierRole("formateur"),
+  tentativeQuizController.obtenirTentativesFormateur
+);
+
+router.patch(
+  "/:id/certificat",
+  verifierRole("formateur"),
+  tentativeQuizController.validerCertificatTentative
+);
 
 // ======================================================
 // ROUTES APPRENANT
@@ -49,14 +60,10 @@ router.post(
   tentativeQuizController.soumettreTentative
 );
 
-// ======================================================
-// ROUTE FORMATEUR
-// ======================================================
-
-router.get(
-  "/formateur",
-  verifierRole("formateur"),
-  tentativeQuizController.obtenirTentativesFormateur
+router.post(
+  "/:id/activite",
+  verifierRole("apprenant"),
+  tentativeQuizController.enregistrerActivite
 );
 
 module.exports = router;

@@ -27,7 +27,10 @@ const routes = [
   ["utilisateurRoutes", "./routes/utilisateurRoutes", "/api/utilisateur"],
   ["moduleRoutes", "./routes/moduleRoutes", "/api/formateur/modules"],
   ["formateurRoutes", "./routes/formateurRoutes", "/api/formateur"],
-  ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"]
+  ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"],
+  ["tentativeRoutes", "./routes/tentativeRoutes", "/api/apprenant/tentatives"],
+  ["tentativeRoutesFormateur", "./routes/tentativeRoutes", "/api/formateur/tentatives"],
+  ["tentativeRoutesGenerique", "./routes/tentativeRoutes", "/api/tentatives"]
 ];
 
 for (const [name, routePath, url] of routes) {
