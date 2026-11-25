@@ -1,41 +1,34 @@
 const express = require("express");
 const router = express.Router();
 const { Utilisateur } = require("../models/Utilisateur");
-const { verifierToken, verifierAdmin } = require("../middlewares/authMiddleware");
+const { authMiddleware, verifierRole } = require("../middlewares/authMiddleware");
 
-// Toutes les routes admin passent ici
-router.use(verifierToken);
-router.use(verifierAdmin);
+// FIX : authMiddleware = verifierToken, verifierRole("admin") = verifierAdmin
+router.use(authMiddleware);
+router.use(verifierRole("admin"));
 
-// GET /api/admin/utilisateurs - liste
 router.get("/utilisateurs", async (req, res) => {
   try {
     const utilisateurs = await Utilisateur.findAll({
-      attributes: ["idUtilisateur", "nom", "prenom", "email", "role", "dateInscription"],
-      order: [["dateInscription", "DESC"]],
+      order: [["idUtilisateur", "DESC"]],
     });
     return res.json({ utilisateurs });
   } catch (error) {
-    console.error("ADMIN UTILISATEURS:", error);
-    return res.status(500).json({ message: "Impossible de charger les utilisateurs." });
+    console.error("ADMIN UTILISATEURS ERREUR:", error.message);
+    return res.status(500).json({ message: "Erreur serveur: " + error.message });
   }
 });
 
-// GET /api/admin/utilisateurs/:id
 router.get("/utilisateurs/:id", async (req, res) => {
   try {
-    const user = await Utilisateur.findByPk(req.params.id, {
-      attributes: ["idUtilisateur", "nom", "prenom", "email", "role", "dateInscription"],
-    });
+    const user = await Utilisateur.findByPk(req.params.id);
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable." });
     return res.json({ utilisateur: user });
   } catch (error) {
-    console.error("ADMIN UTILISATEUR ID:", error);
-    return res.status(500).json({ message: "Impossible de charger l utilisateur." });
+    return res.status(500).json({ message: "Erreur serveur: " + error.message });
   }
 });
 
-// PUT /api/admin/utilisateurs/:id - changer role
 router.put("/utilisateurs/:id", async (req, res) => {
   try {
     const { role } = req.body;
@@ -45,12 +38,10 @@ router.put("/utilisateurs/:id", async (req, res) => {
     await user.save();
     return res.json({ message: "Role mis a jour.", utilisateur: user });
   } catch (error) {
-    console.error("ADMIN UPDATE:", error);
-    return res.status(500).json({ message: "Impossible de modifier l utilisateur." });
+    return res.status(500).json({ message: "Erreur serveur: " + error.message });
   }
 });
 
-// DELETE /api/admin/utilisateurs/:id
 router.delete("/utilisateurs/:id", async (req, res) => {
   try {
     const user = await Utilisateur.findByPk(req.params.id);
@@ -58,20 +49,16 @@ router.delete("/utilisateurs/:id", async (req, res) => {
     await user.destroy();
     return res.json({ message: "Utilisateur supprime." });
   } catch (error) {
-    console.error("ADMIN DELETE:", error);
-    return res.status(500).json({ message: "Impossible de supprimer l utilisateur." });
+    return res.status(500).json({ message: "Erreur serveur: " + error.message });
   }
 });
 
-// GET /api/admin/stats - pour le dashboard
 router.get("/stats", async (req, res) => {
   try {
     const total = await Utilisateur.count();
-    const nbApprenants = await Utilisateur.count({ where: { role: "apprenant" } });
-    const nbFormateurs = await Utilisateur.count({ where: { role: "formateur" } });
-    return res.json({ total, nbApprenants, nbFormateurs });
+    return res.json({ total });
   } catch (error) {
-    return res.status(500).json({ message: "Impossible de charger les stats." });
+    return res.status(500).json({ message: "Erreur serveur: " + error.message });
   }
 });
 
