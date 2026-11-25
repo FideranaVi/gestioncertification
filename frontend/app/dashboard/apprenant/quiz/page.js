@@ -13,7 +13,6 @@ function obtenirToken() {
 
 async function requete(url, options = {}) {
   const token = obtenirToken();
-
   const response = await fetch(`${API}${url}`, {
     ...options,
     headers: {
@@ -22,23 +21,19 @@ async function requete(url, options = {}) {
       ...options.headers,
     },
   });
-
   const texte = await response.text();
   let data = {};
-
   try {
     data = texte ? JSON.parse(texte) : {};
   } catch {
     data = { message: texte };
   }
-
   if (!response.ok) {
     const error = new Error(data.message || data.error || "Une erreur est survenue.");
     error.status = response.status;
     error.data = data;
     throw error;
   }
-
   return data;
 }
 
@@ -55,7 +50,6 @@ function extraireListe(data) {
 function envoyerActivite(idTentative, type, extra = {}) {
   try {
     const token = obtenirToken();
-
     fetch(`${API}/tentatives/${idTentative}/activite`, {
       method: "POST",
       keepalive: true,
@@ -71,6 +65,31 @@ function envoyerActivite(idTentative, type, extra = {}) {
 const estObjet = (valeur) =>
   valeur !== null && typeof valeur === "object" && !Array.isArray(valeur);
 
+// Statut certificat : valide / en_attente / refuse / null
+function obtenirStatutCertificat(item) {
+  if (!item) return "";
+  const brut =
+    item.statutCertificat ||
+    item.certificatStatut ||
+    item.statutDuCertificat ||
+    item.certificat?.statut ||
+    item.certificat?.statutCertificat ||
+    item.tentative?.statutCertificat ||
+    item.derniereTentative?.statutCertificat ||
+    "";
+  return String(brut).toLowerCase().trim();
+}
+
+function estCertificatRefuse(item) {
+  const s = obtenirStatutCertificat(item);
+  return s === "refuse" || s === "refusé" || s === "refusee" || s === "rejete" || s === "rejeté";
+}
+
+function estCertificatValide(item) {
+  const s = obtenirStatutCertificat(item);
+  return s === "valide" || s === "validé" || s === "validee" || s === "accepte" || s === "accepté";
+}
+
 function QuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,16 +100,15 @@ function QuizContent() {
   const [tentative, setTentative] = useState(null);
   const [reponses, setReponses] = useState({});
   const [resultat, setResultat] = useState(null);
-
   const [chargement, setChargement] = useState(true);
   const [demarrage, setDemarrage] = useState(false);
   const [soumission, setSoumission] = useState(false);
-
   const [erreur, setErreur] = useState("");
   const [message, setMessage] = useState("");
   const [dureeRestante, setDureeRestante] = useState(null);
   const [nbSorties, setNbSorties] = useState(0);
   const [avertissement, setAvertissement] = useState("");
+  const [dernierCodeQuiz, setDernierCodeQuiz] = useState(null);
 
   const soumissionRef = useRef(false);
   const quizLanceRef = useRef("");
@@ -115,11 +133,9 @@ function QuizContent() {
 
   useEffect(() => {
     let annule = false;
-
     const timer = setTimeout(async () => {
       if (!annule) await chargerQuiz();
     }, 0);
-
     return () => {
       annule = true;
       clearTimeout(timer);
@@ -133,53 +149,46 @@ function QuizContent() {
         data?.data,
         estObjet(data?.resultat) ? data.resultat : null,
       ].find(estObjet) || {};
-
     setResultat({ ...interne, ...data });
     setTentative(null);
     setDureeRestante(null);
     setMessage("");
-
     resultatRef.current = true;
     soumissionRef.current = false;
   }, []);
 
   const commencerQuiz = useCallback(
     async (codeQuiz) => {
-      if (
-        !codeQuiz ||
-        demarrageRef.current ||
-        quizLanceRef.current === String(codeQuiz)
-      ) {
+      if (!codeQuiz || demarrageRef.current) {
         return;
       }
-
+      // On autorise le redemarrage meme si quizLanceRef est deja le meme,
+      // sinon Reprendre ne marche pas apres un resultat.
+      // On ne bloque que si un demarrage est deja en cours.
       const quizDansListe = quizListe.find(
         (item) => String(item.codeQuiz) === String(codeQuiz)
       );
 
-      const dejaReussi =
-        quizDansListe?.reussi === true ||
-        quizDansListe?.estReussi === true;
+      const certificatRefuse = estCertificatRefuse(quizDansListe);
 
-      if (dejaReussi) {
-        setErreur("Vous avez déjà réussi ce quiz. Il n'est plus accessible.");
-        return;
-      }
-
-      const accessible =
+      // PLUS DE BLOCAGE SI DEJA REUSSI.
+      // Meme si deja reussi / certificat valide, on peut reprendre.
+      // Seul blocage : quiz vraiment non accessible ET certificat non refuse.
+      const accessibleBase =
         quizDansListe?.accessible !== false &&
         quizDansListe?.disponible !== false &&
         quizDansListe?.estDisponible !== false;
 
-      if (quizDansListe && !accessible) {
+      if (quizDansListe && !accessibleBase && !certificatRefuse) {
         setErreur(
-          "Ce quiz n'est pas encore accessible. Terminez les étapes requises de la formation."
+          "Ce quiz n'est pas encore accessible. Terminez les etapes requises de la formation."
         );
         return;
       }
 
       demarrageRef.current = true;
       quizLanceRef.current = String(codeQuiz);
+      setDernierCodeQuiz(codeQuiz);
 
       setDemarrage(true);
       setErreur("");
@@ -191,7 +200,6 @@ function QuizContent() {
       setDureeRestante(null);
       setNbSorties(0);
       setAvertissement("");
-
       resultatRef.current = false;
       soumissionRef.current = false;
 
@@ -210,13 +218,11 @@ function QuizContent() {
           data.tentative ||
           data.data?.tentative ||
           (data.idTentative ? data : null);
-
         const quizData = data.quiz || data.data?.quiz || null;
 
         if (!tentativeData?.idTentative) {
           throw new Error("L'identifiant de la tentative est introuvable.");
         }
-
         if (!quizData) {
           throw new Error("Les informations du quiz sont introuvables.");
         }
@@ -235,27 +241,22 @@ function QuizContent() {
 
         if (Array.isArray(anciennesReponses)) {
           const regroupees = {};
-
           anciennesReponses.forEach((item) => {
             if (item.numQuestion === undefined) return;
-
             const cle = Number(item.numQuestion);
             const valeurs = Array.isArray(item.numReponses)
               ? item.numReponses.map(Number)
               : item.numReponse !== undefined && item.numReponse !== null
                 ? [Number(item.numReponse)]
                 : [];
-
             regroupees[cle] = [
               ...new Set([...(regroupees[cle] || []), ...valeurs]),
             ];
           });
-
           setReponses(regroupees);
         }
 
         const duree = data.dureeRestante ?? tentativeData.dureeRestante;
-
         if (duree !== undefined && duree !== null) {
           setDureeRestante(Math.max(0, Number(duree)));
         } else if (quizData.duree !== undefined && quizData.duree !== null) {
@@ -265,7 +266,7 @@ function QuizContent() {
         if (error.status === 409 && error.data?.tentativeTerminee) {
           afficherResultat(error.data);
         } else {
-          setErreur(error.message || "Impossible de démarrer le quiz.");
+          setErreur(error.message || "Impossible de demarrer le quiz.");
           quizLanceRef.current = "";
         }
       } finally {
@@ -278,13 +279,10 @@ function QuizContent() {
 
   useEffect(() => {
     if (!codeQuizParam || chargement) return;
-
     let annule = false;
-
     const timer = setTimeout(() => {
       if (!annule) commencerQuiz(codeQuizParam);
     }, 0);
-
     return () => {
       annule = true;
       clearTimeout(timer);
@@ -309,11 +307,9 @@ function QuizContent() {
 
   const formaterTemps = useCallback((secondes) => {
     if (secondes === null || secondes === undefined) return "--:--";
-
     const valeur = Math.max(0, Math.floor(secondes));
     const minutes = Math.floor(valeur / 60);
     const reste = valeur % 60;
-
     return `${String(minutes).padStart(2, "0")}:${String(reste).padStart(2, "0")}`;
   }, []);
 
@@ -326,16 +322,14 @@ function QuizContent() {
       ) {
         return;
       }
-
       soumissionRef.current = true;
       setSoumission(true);
       setErreur("");
       setMessage(
         automatique
-          ? "Le temps est écoulé. Soumission du quiz..."
-          : "Soumission de vos réponses..."
+          ? "Le temps est ecoule. Soumission du quiz..."
+          : "Soumission de vos reponses..."
       );
-
       const reponsesFinales = Object.entries(reponses).map(
         ([numQuestion, numReponses]) => ({
           numQuestion: Number(numQuestion),
@@ -344,7 +338,6 @@ function QuizContent() {
             : [],
         })
       );
-
       try {
         const data = await requete(
           `/tentatives/${tentative.idTentative}/soumettre`,
@@ -353,7 +346,6 @@ function QuizContent() {
             body: JSON.stringify({ reponses: reponsesFinales }),
           }
         );
-
         afficherResultat(data);
         await chargerQuiz();
       } catch (error) {
@@ -382,13 +374,11 @@ function QuizContent() {
     ) {
       return;
     }
-
     const interval = setInterval(() => {
       setDureeRestante((ancienneValeur) =>
         ancienneValeur === null ? null : Math.max(0, ancienneValeur - 1)
       );
     }, 1000);
-
     return () => clearInterval(interval);
   }, [dureeRestante, tentative, resultat, soumission]);
 
@@ -402,38 +392,30 @@ function QuizContent() {
     ) {
       return;
     }
-
     const timer = setTimeout(() => soumettreQuiz(true), 0);
-
     return () => clearTimeout(timer);
   }, [dureeRestante, tentative, resultat, soumission, soumettreQuiz]);
 
   useEffect(() => {
     if (!tentative?.idTentative || resultat) return;
-
     const idTentative = tentative.idTentative;
     let sortie = null;
     let timerBlur = null;
-
     const commencerSortie = (type) => {
       if (sortie) return;
       sortie = { type, debut: Date.now() };
       envoyerActivite(idTentative, type);
       setNbSorties((n) => n + 1);
     };
-
     const terminerSortie = () => {
       if (!sortie) return;
-
       const dureeSecondes = Math.round((Date.now() - sortie.debut) / 1000);
       sortie = null;
-
       envoyerActivite(idTentative, "retour", { dureeSecondes });
       setAvertissement(
-        `Vous avez quitté l'écran du quiz pendant ${dureeSecondes} s.`
+        `Vous avez quitte l'ecran du quiz pendant ${dureeSecondes} s.`
       );
     };
-
     const surVisibilite = () => {
       if (document.hidden) {
         clearTimeout(timerBlur);
@@ -442,28 +424,23 @@ function QuizContent() {
         terminerSortie();
       }
     };
-
     const surBlur = () => {
       clearTimeout(timerBlur);
       timerBlur = setTimeout(() => {
         if (!document.hidden) commencerSortie("sortie_fenetre");
       }, 300);
     };
-
     const surFocus = () => {
       clearTimeout(timerBlur);
       if (!document.hidden) terminerSortie();
     };
-
     const surQuitter = () => {
       if (!sortie) envoyerActivite(idTentative, "page_quittee");
     };
-
     document.addEventListener("visibilitychange", surVisibilite);
     window.addEventListener("blur", surBlur);
     window.addEventListener("focus", surFocus);
     window.addEventListener("pagehide", surQuitter);
-
     return () => {
       clearTimeout(timerBlur);
       document.removeEventListener("visibilitychange", surVisibilite);
@@ -477,7 +454,6 @@ function QuizContent() {
     const type = String(
       question.typeQuestion || question.type || ""
     ).toLowerCase();
-
     return (
       type.includes("multiple") ||
       type.includes("plusieurs") ||
@@ -495,21 +471,17 @@ function QuizContent() {
       ) {
         return;
       }
-
       const actuelles = reponses[numQuestion] || [];
       const numero = Number(numReponse);
-
       const nouvelles = !multiple
         ? [numero]
         : actuelles.includes(numero)
           ? actuelles.filter((item) => item !== numero)
           : [...actuelles, numero];
-
       setReponses((anciennes) => ({
         ...anciennes,
         [numQuestion]: nouvelles,
       }));
-
       requete(`/tentatives/${tentative.idTentative}/reponses`, {
         method: "PATCH",
         body: JSON.stringify({
@@ -553,7 +525,6 @@ function QuizContent() {
       resultat?.tentative?.score ??
       resultat?.evaluation?.score ??
       0;
-
     const nombre = Number(valeur);
     return Number.isFinite(nombre) ? nombre : 0;
   };
@@ -565,7 +536,6 @@ function QuizContent() {
         quiz?.seuilReussite ??
         0
     );
-
     return Number.isFinite(nombre) ? nombre : 0;
   };
 
@@ -582,7 +552,6 @@ function QuizContent() {
     quizLanceRef.current = "";
     resultatRef.current = false;
     soumissionRef.current = false;
-
     setResultat(null);
     setQuiz(null);
     setTentative(null);
@@ -591,9 +560,29 @@ function QuizContent() {
     setErreur("");
     setMessage("");
     setChargement(true);
-
     chargerQuiz();
     router.push("/dashboard/apprenant/quiz");
+  };
+
+  const reprendreQuiz = () => {
+    const code = dernierCodeQuiz || codeQuizParam || quiz?.codeQuiz;
+    if (!code) {
+      retournerListe();
+      return;
+    }
+    // Reset complet puis relance
+    quizLanceRef.current = "";
+    resultatRef.current = false;
+    soumissionRef.current = false;
+    setResultat(null);
+    setQuiz(null);
+    setTentative(null);
+    setReponses({});
+    setDureeRestante(null);
+    setErreur("");
+    setMessage("");
+    // Petit delai pour laisser les refs se vider
+    setTimeout(() => commencerQuiz(code), 50);
   };
 
   const allerDashboard = () => {
@@ -616,7 +605,7 @@ function QuizContent() {
       <main className={styles.page}>
         <div className={styles.loadingState}>
           <span className={styles.loader} />
-          <p>Préparation de votre quiz...</p>
+          <p>Preparation de votre quiz...</p>
         </div>
       </main>
     );
@@ -627,6 +616,8 @@ function QuizContent() {
     const seuil = obtenirSeuil();
     const pointsObtenus = resultat.pointsObtenus;
     const pointsTotal = resultat.pointsTotal;
+    const statutCertif = obtenirStatutCertificat(resultat);
+    const certifRefuse = estCertificatRefuse(resultat) || estCertificatRefuse({ statutCertificat: resultat.statutCertificat });
 
     return (
       <main className={styles.page}>
@@ -639,17 +630,14 @@ function QuizContent() {
             >
               {reussi ? "✓" : "!"}
             </div>
-
             <h1 className={styles.pageTitle}>
-              {reussi ? "Félicitations !" : "Quiz terminé"}
+              {reussi ? "Felicitations !" : "Quiz termine"}
             </h1>
-
             <p className={styles.subtitle}>
               {resultat.nomQuiz
-                ? `${resultat.nomQuiz} : votre tentative a été enregistrée.`
-                : "Votre tentative a été enregistrée."}
+                ? `${resultat.nomQuiz} : votre tentative a ete enregistree.`
+                : "Votre tentative a ete enregistree."}
             </p>
-
             <div
               className={`${styles.score} ${
                 reussi ? styles.scorePassed : styles.scoreFailed
@@ -657,41 +645,50 @@ function QuizContent() {
             >
               {obtenirScore()} %
             </div>
-
             <p className={styles.muted}>Score obtenu</p>
-
             {pointsObtenus !== undefined && pointsTotal !== undefined && (
               <p className={styles.points}>
                 {pointsObtenus} / {pointsTotal} points
               </p>
             )}
-
             {seuil > 0 && (
               <p className={styles.threshold}>
-                Seuil de réussite : <strong>{seuil} %</strong>
+                Seuil de reussite : <strong>{seuil} %</strong>
               </p>
             )}
-
             <div
               className={`${styles.resultMessage} ${
                 reussi ? styles.passedMessage : styles.failedMessage
               }`}
             >
               {reussi
-                ? "Vous avez réussi cette évaluation. Ce quiz est maintenant validé et ne pourra plus être recommencé."
-                : "Vous n'avez pas atteint le seuil de réussite."}
+                ? "Vous avez reussi cette evaluation. Vous pouvez la reprendre a tout moment, le formateur decide de la validation du certificat."
+                : "Vous n'avez pas atteint le seuil de reussite. Vous pouvez reprendre le quiz."}
             </div>
 
-            {resultat.certificat && (
+            {certifRefuse && (
               <p className={styles.certificateNotice}>
-                Un certificat a été généré pour cette formation.
+                Certificat refuse par le formateur. Aucun certificat n est affiche. Vous pouvez reprendre le quiz.
+              </p>
+            )}
+
+            {resultat.certificat && !certifRefuse && (
+              <p className={styles.certificateNotice}>
+                Un certificat a ete genere pour cette formation.
               </p>
             )}
 
             <div className={styles.actions}>
-              {reussi && resultat.certificat && (
+              <button
+                className={styles.primaryButton}
+                onClick={reprendreQuiz}
+              >
+                Reprendre le quiz
+              </button>
+
+              {reussi && resultat.certificat && !certifRefuse && (
                 <button
-                  className={styles.primaryButton}
+                  className={styles.secondaryButton}
                   onClick={() => router.push("/dashboard/apprenant/certificats")}
                 >
                   Voir mes certificats
@@ -721,21 +718,18 @@ function QuizContent() {
 
   if (quiz && tentative) {
     const urgent = dureeRestante !== null && dureeRestante <= 60;
-
     return (
       <main className={styles.page}>
         <header className={styles.quizHeader}>
           <div className={styles.quizHeaderText}>
             <h1 className={styles.pageTitle}>
-              {quiz.nomQuiz || quiz.titre || "Évaluation"}
+              {quiz.nomQuiz || quiz.titre || "Evaluation"}
             </h1>
-
             <p className={styles.subtitle}>
               {quiz.descriptionQuiz ||
                 quiz.description ||
-                "Répondez aux questions ci-dessous."}
+                "Repondez aux questions ci-dessous."}
             </p>
-
             <button
               className={styles.dashboardButton}
               onClick={allerDashboard}
@@ -744,7 +738,6 @@ function QuizContent() {
               Tableau de bord
             </button>
           </div>
-
           <div className={`${styles.timer} ${urgent ? styles.timerUrgent : ""}`}>
             <span className={styles.timerLabel}>Temps restant</span>
             <span className={styles.timerValue}>
@@ -759,13 +752,13 @@ function QuizContent() {
         <div className={styles.warningNotice}>
           <strong>Surveillance du quiz</strong>
           <p>
-            Tout changement d&apos;onglet ou sortie de l&apos;écran est
-            enregistré et visible par votre formateur.
+            Tout changement d&apos;onglet ou sortie de l&apos;ecran est
+            enregistre et visible par votre formateur.
           </p>
           {avertissement && <p>{avertissement}</p>}
           {nbSorties > 0 && (
             <p>
-              Sorties enregistrées : <strong>{nbSorties}</strong>
+              Sorties enregistrees : <strong>{nbSorties}</strong>
             </p>
           )}
         </div>
@@ -774,10 +767,9 @@ function QuizContent() {
           <div className={styles.progressHeader}>
             <strong>Votre progression</strong>
             <span>
-              {nombreReponses} / {questions.length} questions répondues
+              {nombreReponses} / {questions.length} questions repondues
             </span>
           </div>
-
           <div className={styles.progressTrack}>
             <div
               className={styles.progressBar}
@@ -800,12 +792,10 @@ function QuizContent() {
             const choix = obtenirChoix(question);
             const multiple = estQuestionMultiple(question);
             const selection = reponses[numero] || [];
-
             return (
               <section key={numero} className={styles.questionCard}>
                 <div className={styles.questionHeader}>
                   <span className={styles.questionNumber}>{index + 1}</span>
-
                   <div className={styles.questionTextBlock}>
                     <h3 className={styles.questionTitle}>
                       {question.enonce ||
@@ -814,24 +804,20 @@ function QuizContent() {
                         question.question ||
                         `Question ${index + 1}`}
                     </h3>
-
                     <span className={styles.questionType}>
                       {multiple
-                        ? "Plusieurs réponses possibles"
-                        : "Une seule réponse"}
+                        ? "Plusieurs reponses possibles"
+                        : "Une seule reponse"}
                     </span>
                   </div>
                 </div>
-
                 <div className={styles.optionsList}>
                   {choix.map((reponse, indexReponse) => {
                     const numeroReponse = obtenirNumeroReponse(
                       reponse,
                       indexReponse
                     );
-
                     const coche = selection.includes(Number(numeroReponse));
-
                     return (
                       <label
                         key={numeroReponse}
@@ -849,7 +835,6 @@ function QuizContent() {
                           }
                           className={styles.optionInput}
                         />
-
                         <span className={styles.optionText}>
                           {obtenirTexteReponse(reponse)}
                         </span>
@@ -864,10 +849,9 @@ function QuizContent() {
 
         <section className={styles.submitCard}>
           <div className={styles.submitInfo}>
-            <strong>{nombreReponses} réponse(s) sélectionnée(s)</strong>
-            <p>Vérifiez vos réponses avant de terminer.</p>
+            <strong>{nombreReponses} reponse(s) selectionnee(s)</strong>
+            <p>Verifiez vos reponses avant de terminer.</p>
           </div>
-
           <button
             className={`${styles.primaryButton} ${
               soumission ? styles.buttonDisabled : ""
@@ -888,10 +872,9 @@ function QuizContent() {
         <div>
           <h1 className={styles.pageTitle}>Mes quiz</h1>
           <p className={styles.subtitle}>
-            Consultez les évaluations disponibles et testez vos connaissances.
+            Consultez les evaluations disponibles et testez vos connaissances.
           </p>
         </div>
-
         <button
           className={styles.dashboardButton}
           onClick={allerDashboard}
@@ -902,9 +885,8 @@ function QuizContent() {
       </header>
 
       {erreur && <div className={styles.errorNotice}>{erreur}</div>}
-
       {demarrage && (
-        <div className={styles.infoNotice}>Préparation de votre quiz...</div>
+        <div className={styles.infoNotice}>Preparation de votre quiz...</div>
       )}
 
       {!chargement && quizListe.length === 0 && (
@@ -912,7 +894,7 @@ function QuizContent() {
           <div className={styles.emptyIcon}>Q</div>
           <h2>Aucun quiz disponible</h2>
           <p>
-            Les évaluations apparaîtront ici lorsque les conditions d&apos;accès
+            Les evaluations apparaitront ici lorsque les conditions d&apos;acces
             seront remplies.
           </p>
         </section>
@@ -921,15 +903,18 @@ function QuizContent() {
       <div className={styles.quizList}>
         {quizListe.map((item, index) => {
           const codeQuiz = item.codeQuiz;
-
           const dejaReussi =
             item.reussi === true || item.estReussi === true;
+          const certificatRefuse = estCertificatRefuse(item);
+          const certificatValide = estCertificatValide(item);
 
-          const accessible =
+          // JAMAIS verrouille a cause de reussi / valide / refuse.
+          // Verrouille seulement si backend dit non accessible ET pas refuse.
+          const accessibleBase =
             item.accessible !== false &&
             item.disponible !== false &&
-            item.estDisponible !== false &&
-            !dejaReussi;
+            item.estDisponible !== false;
+          const accessible = accessibleBase || certificatRefuse;
 
           return (
             <section
@@ -943,38 +928,40 @@ function QuizContent() {
                   <h2 className={styles.quizName}>
                     {item.nomQuiz || item.titre || `Quiz ${index + 1}`}
                   </h2>
-
                   <span
                     className={`${styles.statusBadge} ${
-                      dejaReussi
-                        ? styles.statusPassed
-                        : accessible
-                          ? styles.statusAvailable
-                          : styles.statusLocked
+                      certificatRefuse
+                        ? styles.statusLocked
+                        : dejaReussi
+                          ? styles.statusPassed
+                          : accessible
+                            ? styles.statusAvailable
+                            : styles.statusLocked
                     }`}
                   >
-                    {dejaReussi
-                      ? "Réussi"
-                      : accessible
-                        ? "Disponible"
-                        : "Non disponible"}
+                    {certificatRefuse
+                      ? "Certificat refuse - Reprendre"
+                      : dejaReussi
+                        ? "Reussi - Reprendre"
+                        : accessible
+                          ? "Disponible"
+                          : "Non disponible"}
                   </span>
                 </div>
 
                 <p className={styles.quizDescription}>
                   {item.descriptionQuiz ||
                     item.description ||
-                    "Évaluation de vos connaissances."}
+                    "Evaluation de vos connaissances."}
                 </p>
 
                 <div className={styles.quizMeta}>
                   {item.duree !== undefined && item.duree !== null && (
                     <span>
-                      <span className={styles.metaLabel}>Durée</span>
+                      <span className={styles.metaLabel}>Duree</span>
                       {item.duree} min
                     </span>
                   )}
-
                   {item.seuilReussite !== undefined &&
                     item.seuilReussite !== null && (
                       <span>
@@ -982,7 +969,6 @@ function QuizContent() {
                         {item.seuilReussite} %
                       </span>
                     )}
-
                   {item.nombreQuestions !== undefined && (
                     <span>
                       <span className={styles.metaLabel}>Questions</span>
@@ -991,20 +977,27 @@ function QuizContent() {
                   )}
                 </div>
 
-                {dejaReussi ? (
+                {certificatRefuse ? (
+                  <div className={styles.lockedDescription}>
+                    <span className={styles.lockIcon}>!</span>
+                    <p>
+                      Certificat refuse par le formateur. Aucun certificat n est affiche. Vous pouvez reprendre le quiz.
+                    </p>
+                  </div>
+                ) : dejaReussi ? (
                   <div className={styles.passedDescription}>
                     <span className={styles.passedIcon}>✓</span>
                     <p>
-                      Vous avez déjà validé cette évaluation. Vous ne pouvez plus
-                      la recommencer.
+                      Vous avez deja valide cette evaluation. Vous pouvez la reprendre a tout moment.
+                      {certificatValide ? " Certificat valide." : ""}
                     </p>
                   </div>
                 ) : !accessible ? (
                   <div className={styles.lockedDescription}>
                     <span className={styles.lockIcon}>⌑</span>
                     <p>
-                      Ce quiz est verrouillé. Terminez les modules et les étapes
-                      requises de la formation pour y accéder.
+                      Ce quiz est verrouille. Terminez les modules et les etapes
+                      requises de la formation pour y acceder.
                     </p>
                   </div>
                 ) : null}
@@ -1013,18 +1006,20 @@ function QuizContent() {
               <div className={styles.quizCardActions}>
                 <button
                   className={`${styles.primaryButton} ${
-                    dejaReussi || !accessible ? styles.buttonDisabled : ""
+                    !accessible ? styles.buttonDisabled : ""
                   } ${dejaReussi ? styles.buttonPassed : ""}`}
-                  disabled={!accessible || dejaReussi || demarrage}
+                  disabled={!accessible || demarrage}
                   onClick={() => commencerQuiz(codeQuiz)}
                 >
-                  {dejaReussi
-                    ? "✓ Quiz validé"
-                    : demarrage
-                      ? "Chargement..."
-                      : accessible
-                        ? "Commencer le quiz"
-                        : "Quiz verrouillé"}
+                  {certificatRefuse
+                    ? "Reprendre le quiz"
+                    : dejaReussi
+                      ? "Reprendre le quiz"
+                      : demarrage
+                        ? "Chargement..."
+                        : accessible
+                          ? "Commencer le quiz"
+                          : "Quiz verrouille"}
                 </button>
               </div>
             </section>
