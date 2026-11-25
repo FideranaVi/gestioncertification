@@ -1,476 +1,389 @@
-
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import styles from "./utilisateur.module.css";
+import useSWR from "swr";
+import { BookOpen, Layers, Search, ChevronDown, ChevronRight, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
+import styles from "./module.module.css";
 
-import { obtenirApiAdmin } from "@/lib/api";
-const API = obtenirApiAdmin();
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
 
-function Icon({ name, size = 18 }) {
-  const icons = {
-    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
-    plus: <><path d="M12 5v14M5 12h14" /></>,
-    edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></>,
-    trash: <><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 11v5m4-5v5" /></>,
-    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
-    home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1Z" /></>,
-    refresh: <><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></>,
-  };
-
+function getToken() {
+  if (typeof window === "undefined") return "";
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {icons[name]}
-    </svg>
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token") ||
+    ""
   );
 }
 
 async function lireReponse(response) {
-  const text = await response.text();
-
   try {
-    return text ? JSON.parse(text) : {};
+    return await response.json();
   } catch {
-    return { message: text || "Réponse invalide du serveur." };
+    return {};
   }
 }
 
-function obtenirId(utilisateur) {
-  return (
-    utilisateur.idUtilisateur ??
-    utilisateur.code_utilisateur ??
-    utilisateur.id_utilisateur ??
-    utilisateur.id
-  );
+async function chargerDonnees() {
+  const token = getToken();
+  if (!token) {
+    throw new Error("Session expirée. Veuillez vous reconnecter.");
+  }
+  const headers = {
+    Authorization: `Bearer ${token}`,
+  };
+  const [modulesRes, formationsRes] = await Promise.all([
+    fetch(`${API}/modules`, { headers, cache: "no-store" }),
+    fetch(`${API}/formations`, { headers, cache: "no-store" }),
+  ]);
+  const [modulesData, formationsData] = await Promise.all([
+    lireReponse(modulesRes),
+    lireReponse(formationsRes),
+  ]);
+  if (!modulesRes.ok) {
+    throw new Error(modulesData.message || "Impossible de charger les modules.");
+  }
+  if (!formationsRes.ok) {
+    throw new Error(formationsData.message || "Impossible de charger les formations.");
+  }
+  return {
+    modules: Array.isArray(modulesData) ? modulesData : modulesData.modules || [],
+    formations: Array.isArray(formationsData) ? formationsData : formationsData.formations || [],
+  };
 }
 
-function normaliserRole(role) {
-  const valeur = String(role || "").toLowerCase().trim();
+export default function ModulesPage() {
+  const [recherche, setRecherche] = useState("");
+  const [formationFiltre, setFormationFiltre] = useState("");
+  const [suppression, setSuppression] = useState(null);
+  const [erreurSuppression, setErreurSuppression] = useState("");
+  const [succesSuppression, setSuccesSuppression] = useState("");
+  const [formationsOuvertes, setFormationsOuvertes] = useState(() => new Set());
 
-  if (["admin", "administrateur"].includes(valeur)) return "admin";
-  if (["formateur"].includes(valeur)) return "formateur";
-  if (["apprenant", "participant"].includes(valeur)) return "apprenant";
+  const {
+    data,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR("formateur-modules-et-formations", chargerDonnees, {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    shouldRetryOnError: false,
+  });
 
-  return valeur;
-}
+  // FIX ESLINT : modules / formations dans leur propre useMemo
+  const modules = useMemo(() => data?.modules || [], [data]);
+  const formations = useMemo(() => data?.formations || [], [data]);
 
-function obtenirNomRole(role) {
-  const roles = {
-    admin: "Administrateur",
-    formateur: "Formateur",
-    apprenant: "Apprenant",
+  const modulesFiltres = useMemo(() => {
+    const terme = recherche.trim().toLowerCase();
+    return modules
+      .filter((module) => {
+        const titre = (module.titreModule || "").toLowerCase();
+        const description = (module.descriptionModule || "").toLowerCase();
+        const formation = formations.find(
+          (item) => String(item.numFormation) === String(module.numFormation)
+        );
+        const titreFormation = (formation?.titre || "").toLowerCase();
+        const correspondRecherche =
+          !terme ||
+          titre.includes(terme) ||
+          description.includes(terme) ||
+          titreFormation.includes(terme);
+        const correspondFormation =
+          !formationFiltre ||
+          String(module.numFormation) === String(formationFiltre);
+        return correspondRecherche && correspondFormation;
+      })
+      .sort((a, b) => {
+        if (String(a.numFormation) === String(b.numFormation)) {
+          return (Number(a.ordre) || 0) - (Number(b.ordre) || 0);
+        }
+        return Number(a.numFormation) - Number(b.numFormation);
+      });
+  }, [modules, formations, recherche, formationFiltre]);
+
+  const groupesParFormation = useMemo(() => {
+    const groupes = new Map();
+    formations.forEach((formation) => {
+      if (formationFiltre && String(formation.numFormation) !== String(formationFiltre)) return;
+      groupes.set(String(formation.numFormation), {
+        formation,
+        modules: [],
+      });
+    });
+    modulesFiltres.forEach((module) => {
+      const key = String(module.numFormation);
+      if (!groupes.has(key)) {
+        const formation = formations.find((f) => String(f.numFormation) === key);
+        groupes.set(key, {
+          formation: formation || { numFormation: module.numFormation, titre: `Formation #${module.numFormation}` },
+          modules: [],
+        });
+      }
+      groupes.get(key).modules.push(module);
+    });
+    if (recherche.trim()) {
+      return [...groupes.values()].filter((g) => g.modules.length > 0);
+    }
+    return [...groupes.values()];
+  }, [formations, modulesFiltres, formationFiltre, recherche]);
+
+  const obtenirNomFormation = (module) => {
+    const formation = formations.find(
+      (item) => String(item.numFormation) === String(module.numFormation)
+    );
+    return (
+      module.formation?.titre ||
+      formation?.titre ||
+      `Formation #${module.numFormation}`
+    );
   };
 
-  return roles[normaliserRole(role)] || role || "Non défini";
-}
-
-export default function UtilisateursPage() {
-  const [utilisateurs, setUtilisateurs] = useState([]);
-  const [chargement, setChargement] = useState(true);
-  const [recherche, setRecherche] = useState("");
-  const [filtreRole, setFiltreRole] = useState("tous");
-  const [erreur, setErreur] = useState("");
-  const [suppression, setSuppression] = useState(null);
-
-  async function chargerUtilisateurs() {
-    try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(API, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token || ""}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      });
-
-      const data = await lireReponse(response);
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          data.erreur ||
-          "Impossible de charger les utilisateurs."
-        );
-      }
-
-      const liste = Array.isArray(data)
-        ? data
-        : data.utilisateurs || data.data || data.users || [];
-
-      if (!Array.isArray(liste)) {
-        throw new Error("Format de données incorrect.");
-      }
-
-      setUtilisateurs(liste);
-      setErreur("");
-    } catch (error) {
-      setErreur(error.message || "Erreur de connexion au serveur.");
-    } finally {
-      setChargement(false);
-    }
-  }
-
-  useEffect(() => {
-    let actif = true;
-
-    async function charger() {
-      try {
-        const token = localStorage.getItem("token");
-
-        const response = await fetch(API, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token || ""}`,
-            "Content-Type": "application/json",
-          },
-          cache: "no-store",
-        });
-
-        const data = await lireReponse(response);
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-            data.erreur ||
-            "Impossible de charger les utilisateurs."
-          );
-        }
-
-        const liste = Array.isArray(data)
-          ? data
-          : data.utilisateurs || data.data || data.users || [];
-
-        if (!Array.isArray(liste)) {
-          throw new Error("Format de données incorrect.");
-        }
-
-        if (actif) {
-          setUtilisateurs(liste);
-          setErreur("");
-        }
-      } catch (error) {
-        if (actif) {
-          setErreur(error.message || "Erreur de connexion au serveur.");
-        }
-      } finally {
-        if (actif) {
-          setChargement(false);
-        }
-      }
-    }
-
-    charger();
-
-    return () => {
-      actif = false;
-    };
-  }, []);
-
-  const utilisateursFiltres = useMemo(() => {
-    const texte = recherche.toLowerCase().trim();
-
-    return utilisateurs.filter((u) => {
-      const nom = `${u.nom || ""} ${u.prenom || ""}`.toLowerCase();
-      const email = (u.email || "").toLowerCase();
-      const role = normaliserRole(u.role);
-
-      return (
-        (nom.includes(texte) || email.includes(texte)) &&
-        (filtreRole === "tous" || role === filtreRole)
-      );
+  const toggleFormation = (numFormation) => {
+    setFormationsOuvertes((prev) => {
+      const next = new Set(prev);
+      const key = String(numFormation);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
-  }, [utilisateurs, recherche, filtreRole]);
+  };
 
-  const stats = useMemo(() => ({
-    total: utilisateurs.length,
-    administrateurs: utilisateurs.filter(
-      (u) => normaliserRole(u.role) === "admin"
-    ).length,
-    formateurs: utilisateurs.filter(
-      (u) => normaliserRole(u.role) === "formateur"
-    ).length,
-    apprenants: utilisateurs.filter(
-      (u) => normaliserRole(u.role) === "apprenant"
-    ).length,
-  }), [utilisateurs]);
+  const toutOuvrir = () => {
+    setFormationsOuvertes(new Set(groupesParFormation.map((g) => String(g.formation.numFormation))));
+  };
 
-  async function supprimerUtilisateur(id) {
-    if (!id) {
-      setErreur("Identifiant utilisateur introuvable.");
+  const toutFermer = () => {
+    setFormationsOuvertes(new Set());
+  };
+
+  const supprimerModule = async (codeModule) => {
+    if (!codeModule) {
+      setErreurSuppression("Identifiant du module introuvable.");
       return;
     }
-
-    if (!window.confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
-      return;
-    }
-
+    const confirmation = window.confirm(
+      "Voulez-vous vraiment supprimer ce module ? Cette action est irréversible."
+    );
+    if (!confirmation) return;
     try {
-      setSuppression(id);
-      setErreur("");
-
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API}/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token || ""}`,
-        },
-      });
-
-      const data = await lireReponse(response);
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || data.erreur || "La suppression a échoué."
-        );
+      setSuppression(codeModule);
+      setErreurSuppression("");
+      setSuccesSuppression("");
+      const token = getToken();
+      if (!token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
       }
-
-      setUtilisateurs((prev) =>
-        prev.filter((u) => String(obtenirId(u)) !== String(id))
+      const response = await fetch(
+        `${API}/modules/${encodeURIComponent(codeModule)}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-    } catch (error) {
-      setErreur(error.message || "Erreur pendant la suppression.");
+      const result = await lireReponse(response);
+      if (!response.ok) {
+        throw new Error(result.message || "La suppression du module a échoué.");
+      }
+      setSuccesSuppression(result.message || "Module supprimé avec succès.");
+      await mutate();
+    } catch (err) {
+      setErreurSuppression(err.message || "Impossible de supprimer ce module.");
     } finally {
       setSuppression(null);
     }
-  }
+  };
 
-  function classeRole(role) {
-    const valeur = normaliserRole(role);
+  const totalFormations = useMemo(() => new Set(modules.map((module) => module.numFormation)).size, [modules]);
 
-    if (valeur === "admin") return styles.admin;
-    if (valeur === "formateur") return styles.formateur;
-
-    return styles.apprenant;
-  }
+  const estOuverte = (numFormation) => {
+    if (recherche.trim() || formationFiltre) return true;
+    if (formationsOuvertes.size === 0) return true;
+    return formationsOuvertes.has(String(numFormation));
+  };
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>ESPACE ADMINISTRATEUR</span>
-          <h1>Gestion des utilisateurs</h1>
-          <p>Gérez les comptes et les accès de votre plateforme.</p>
-        </div>
-
-        <div className={styles.headerActions}>
-          <Link
-            href="/dashboard/admin"
-            className={styles.secondaryButton}
-          >
-            <Icon name="home" /> Tableau de bord
-          </Link>
-
-          <button
-            className={styles.refreshButton}
-            onClick={() => {
-              setChargement(true);
-              chargerUtilisateurs();
-            }}
-            type="button"
-            disabled={chargement}
-          >
-            <Icon name="refresh" /> Actualiser
-          </button>
-
-          <Link
-            href="/dashboard/admin/utilisateurs/ajouter"
-            className={styles.addButton}
-          >
-            <Icon name="plus" /> Ajouter un utilisateur
-          </Link>
-        </div>
-      </header>
-
-      {erreur && (
-        <div className={styles.error} role="alert">
-          {erreur}
-        </div>
-      )}
-
-      <section className={styles.stats}>
-        <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconGreen}`}>
-            <Icon name="users" size={23} />
-          </div>
+      <div className={styles.container}>
+        <header className={styles.header}>
           <div>
-            <span>Total utilisateurs</span>
-            <strong>{stats.total}</strong>
+            <span className={styles.eyebrow}>ESPACE FORMATEUR</span>
+            <h1>Mes modules</h1>
+            <p>Modules regroupés par formation. Ouvre une formation pour voir ses modules.</p>
           </div>
-        </article>
-
-        <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconPurple}`}>
-            <Icon name="users" size={23} />
+          <div className={styles.headerActions}>
+            <Link href="/dashboard/formateur" className={styles.backButton}>
+              <ArrowLeft size={18} /> Tableau de bord
+            </Link>
+            <Link href="/dashboard/formateur/modules/creer" className={styles.addButton}>
+              <Plus size={18} /> Ajouter un module
+            </Link>
           </div>
-          <div>
-            <span>Administrateurs</span>
-            <strong>{stats.administrateurs}</strong>
+        </header>
+        <section className={styles.stats}>
+          <article className={styles.statCard}>
+            <div className={styles.statIcon}><Layers size={22} /></div>
+            <div><span>Total des modules</span><strong>{modules.length}</strong></div>
+          </article>
+          <article className={styles.statCard}>
+            <div className={styles.statIcon}><BookOpen size={22} /></div>
+            <div><span>Formations concernées</span><strong>{totalFormations}</strong></div>
+          </article>
+          <article className={styles.statCard}>
+            <div className={styles.statIcon}><Search size={22} /></div>
+            <div><span>Modules affichés</span><strong>{modulesFiltres.length}</strong></div>
+          </article>
+        </section>
+        <section className={styles.content}>
+          <div className={styles.contentHeader}>
+            <div>
+              <h2>Modules par formation</h2>
+              <p>Retrouvez tous les modules créés dans vos formations.</p>
+            </div>
+            <span className={styles.count}>{groupesParFormation.length} formation(s) • {modulesFiltres.length} module(s)</span>
           </div>
-        </article>
-
-        <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconBlue}`}>
-            <Icon name="users" size={23} />
+          <div className={styles.filters}>
+            <div className={styles.searchBox}>
+              <Search size={18} />
+              <input
+                type="search"
+                placeholder="Rechercher un module ou une formation..."
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+              />
+            </div>
+            <select value={formationFiltre} onChange={(e) => setFormationFiltre(e.target.value)}>
+              <option value="">Toutes les formations</option>
+              {formations.map((formation) => (
+                <option key={formation.numFormation} value={formation.numFormation}>
+                  {formation.titre}
+                </option>
+              ))}
+            </select>
           </div>
-          <div>
-            <span>Formateurs</span>
-            <strong>{stats.formateurs}</strong>
+          <div className={styles.groupActions}>
+            <button type="button" onClick={toutOuvrir}>Tout ouvrir</button>
+            <button type="button" onClick={toutFermer}>Tout fermer</button>
           </div>
-        </article>
-
-        <article className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.iconOrange}`}>
-            <Icon name="users" size={23} />
-          </div>
-          <div>
-            <span>Apprenants</span>
-            <strong>{stats.apprenants}</strong>
-          </div>
-        </article>
-      </section>
-
-      <section className={styles.content}>
-        <div className={styles.contentHeader}>
-          <div>
-            <h2>Liste des utilisateurs</h2>
-            <p>Consultez, modifiez ou supprimez les comptes.</p>
-          </div>
-
-          <span className={styles.count}>
-            {utilisateursFiltres.length} résultat(s)
-          </span>
-        </div>
-
-        <div className={styles.toolbar}>
-          <div className={styles.search}>
-            <Icon name="search" />
-
-            <input
-              type="search"
-              placeholder="Rechercher un nom ou un email..."
-              value={recherche}
-              onChange={(e) => setRecherche(e.target.value)}
-            />
-          </div>
-
-          <select
-            value={filtreRole}
-            onChange={(e) => setFiltreRole(e.target.value)}
-          >
-            <option value="tous">Tous les rôles</option>
-            <option value="admin">Administrateur</option>
-            <option value="formateur">Formateur</option>
-            <option value="apprenant">Apprenant</option>
-          </select>
-        </div>
-
-        {chargement ? (
-          <div className={styles.loading}>
-            <span className={styles.spinner}></span>
-            <p>Chargement des utilisateurs...</p>
-          </div>
-        ) : utilisateursFiltres.length === 0 ? (
-          <div className={styles.empty}>
-            <Icon name="users" size={38} />
-            <h3>Aucun utilisateur trouvé</h3>
-            <p>
-              Essayez une autre recherche ou ajoutez un utilisateur.
-            </p>
-          </div>
-        ) : (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Utilisateur</th>
-                  <th>Adresse email</th>
-                  <th>Rôle</th>
-                  <th className={styles.actionsHeading}>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {utilisateursFiltres.map((u) => {
-                  const id = obtenirId(u);
-
-                  return (
-                    <tr key={id}>
-                      <td>
-                        <div className={styles.user}>
-                          <div className={styles.avatar}>
-                            {(u.nom || "U").charAt(0).toUpperCase()}
-                          </div>
-
-                          <div>
-                            <strong>
-                              {u.nom || ""} {u.prenom || ""}
-                            </strong>
-                            <small>Compte #{id}</small>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className={styles.email}>
-                        {u.email || "Non renseigné"}
-                      </td>
-
-                      <td>
-                        <span
-                          className={`${styles.role} ${classeRole(u.role)}`}
+          {succesSuppression && <div className={styles.success}>{succesSuppression}</div>}
+          {erreurSuppression && (
+            <div className={styles.error}>
+              <strong>Erreur de suppression</strong>
+              <p>{erreurSuppression}</p>
+              <button type="button" onClick={() => setErreurSuppression("")}>Fermer</button>
+            </div>
+          )}
+          {isLoading ? (
+            <div className={styles.state}>
+              <div className={styles.spinner}></div>
+              Chargement des modules...
+            </div>
+          ) : error ? (
+            <div className={styles.error}>
+              <strong>Une erreur est survenue</strong>
+              <p>{error.message}</p>
+              <button type="button" onClick={() => mutate()}>Réessayer</button>
+            </div>
+          ) : (
+            <>
+              {groupesParFormation.length === 0 ? (
+                <div className={styles.empty}>
+                  <div className={styles.emptyIcon}><Layers size={36} /></div>
+                  <h3>{modules.length === 0 ? "Aucun module pour le moment" : "Aucun module trouvé"}</h3>
+                  <p>
+                    {modules.length === 0
+                      ? "Commencez par ajouter votre premier module à une formation."
+                      : "Essayez de modifier votre recherche ou votre filtre."}
+                  </p>
+                  {modules.length === 0 && (
+                    <Link href="/dashboard/formateur/modules/creer">Ajouter mon premier module</Link>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.formationGroups}>
+                  {groupesParFormation.map(({ formation, modules: modulesDuGroupe }) => {
+                    const ouvert = estOuverte(formation.numFormation);
+                    return (
+                      <section key={formation.numFormation} className={styles.formationGroup}>
+                        <button
+                          type="button"
+                          className={styles.formationGroupHeader}
+                          onClick={() => toggleFormation(formation.numFormation)}
                         >
-                          {obtenirNomRole(u.role)}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className={styles.actions}>
-                          <Link
-                            href={`/dashboard/admin/utilisateurs/modifier?id=${id}`}
-                            className={styles.editButton}
-                            title="Modifier cet utilisateur"
-                          >
-                            <Icon name="edit" /> Modifier
-                          </Link>
-
-                          <button
-                            type="button"
-                            className={styles.deleteButton}
-                            disabled={suppression === id}
-                            onClick={() => supprimerUtilisateur(id)}
-                          >
-                            <Icon name="trash" />
-                            {suppression === id
-                              ? "Suppression..."
-                              : "Supprimer"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <footer className={styles.footer}>
-        Learning Pro · Administration
-      </footer>
+                          <span className={styles.formationGroupIcon}><BookOpen size={22} /></span>
+                          <span className={styles.formationGroupInfo}>
+                            <strong>{formation.titre}</strong>
+                            <small>
+                              {formation.description || `Formation #${formation.numFormation}`}
+                              {formation.dateDebut ? ` • Début : ${String(formation.dateDebut).slice(0, 10)}` : ""}
+                            </small>
+                          </span>
+                          <span className={styles.formationGroupCount}>
+                            {modulesDuGroupe.length} module(s)
+                          </span>
+                          <span className={styles.formationGroupChevron}>
+                            {ouvert ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                          </span>
+                        </button>
+                        {ouvert && (
+                          <>
+                            {modulesDuGroupe.length === 0 ? (
+                              <div className={styles.noModule}>
+                                Aucun module dans cette formation pour le moment.
+                                <Link href="/dashboard/formateur/modules/creer">+ Ajouter un module</Link>
+                              </div>
+                            ) : (
+                              <div className={styles.moduleGrid}>
+                                {modulesDuGroupe.map((module) => (
+                                  <article className={styles.moduleCard} key={module.codeModule}>
+                                    <div className={styles.cardTop}>
+                                      <span className={styles.lessonIcon}><Layers size={20} /></span>
+                                      <span className={styles.orderBadge}>Module {module.ordre || 1}</span>
+                                    </div>
+                                    <h3>{module.titreModule}</h3>
+                                    <p className={styles.description}>
+                                      {module.descriptionModule || "Aucune description disponible."}
+                                    </p>
+                                    <div className={styles.formationInfo}>
+                                      <span>FORMATION ASSOCIÉE</span>
+                                      <strong>{obtenirNomFormation(module)}</strong>
+                                    </div>
+                                    <div className={styles.cardFooter}>
+                                      <Link
+                                        href={`/dashboard/formateur/modules/modifier?id=${encodeURIComponent(module.codeModule)}`}
+                                        className={styles.editButton}
+                                      >
+                                        <Pencil size={16} /> Modifier
+                                      </Link>
+                                      <button
+                                        type="button"
+                                        className={styles.deleteButton}
+                                        onClick={() => supprimerModule(module.codeModule)}
+                                        disabled={suppression !== null}
+                                      >
+                                        <Trash2 size={16} />
+                                        {suppression === module.codeModule ? "Suppression..." : "Supprimer"}
+                                      </button>
+                                    </div>
+                                  </article>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </section>
+        <footer className={styles.footer}>Learning Pro · Espace formateur</footer>
+      </div>
     </main>
   );
 }

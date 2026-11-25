@@ -73,12 +73,11 @@ function extraireListe(data) {
 }
 
 function nomUtilisateur(user) {
-  return (
-    `${user.prenom || ""} ${user.nom || ""}`.trim() ||
-    user.nomComplet ||
-    user.name ||
-    "Utilisateur"
-  );
+  const nom = (user.nom || "").trim().toUpperCase();
+  let prenom = (user.prenom || "").trim();
+  if (prenom) prenom = prenom.charAt(0).toUpperCase() + prenom.slice(1).toLowerCase();
+  const complet = [nom, prenom].filter(Boolean).join(" ");
+  return complet || user.nomComplet || user.name || "Utilisateur";
 }
 
 function initialesDe(nomComplet) {
@@ -94,8 +93,8 @@ function initialesDe(nomComplet) {
 function initiales(user) {
   const prenom = user.prenom || "";
   const nom = user.nom || "";
-  const value = `${prenom.charAt(0)}${nom.charAt(0)}`.toUpperCase();
-  return value || "U";
+  const value = `${nom.charAt(0)}${prenom.charAt(0)}`.toUpperCase();
+  return value.trim() || "U";
 }
 
 function formatDate(date) {
@@ -111,6 +110,7 @@ function formatDate(date) {
 
 function roleLabel(role) {
   switch ((role || "").toLowerCase()) {
+    case "admin":
     case "administrateur":
       return "Administrateur";
     case "formateur":
@@ -142,8 +142,8 @@ export default function AdminDashboard() {
     const stocke = lireUtilisateurStocke();
     const nom =
       payload.nomComplet ||
-      [payload.prenom, payload.nom].filter(Boolean).join(" ") ||
-      [stocke.prenom, stocke.nom].filter(Boolean).join(" ") ||
+      [payload.nom, payload.prenom].filter(Boolean).join(" ") ||
+      [stocke.nom, stocke.prenom].filter(Boolean).join(" ") ||
       stocke.nomComplet ||
       stocke.nom ||
       "Administrateur";
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
     setTokenPresent(Boolean(token));
     if (token) construireProfilAdmin(token);
     try {
-      const data = await requete(`${API}/utilisateur`, token);
+      const data = await requete(`${API}/utilisateurs`, token);
       setUtilisateurs(extraireListe(data));
     } catch {
       setUtilisateurs([]);
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
       setTokenPresent(Boolean(token));
       if (token) construireProfilAdmin(token);
       try {
-        const data = await requete(`${API}/utilisateur`, token);
+        const data = await requete(`${API}/utilisateurs`, token);
         if (!actif) return;
         setUtilisateurs(extraireListe(data));
       } catch {
@@ -217,8 +217,8 @@ export default function AdminDashboard() {
 
   const utilisateursRecents = [...utilisateurs]
     .sort((a, b) => {
-      const dateA = new Date(a.dateCreation || a.createdAt || 0);
-      const dateB = new Date(b.dateCreation || b.createdAt || 0);
+      const dateA = new Date(a.dateCreation || a.createdAt || a.dateInscription || 0);
+      const dateB = new Date(b.dateCreation || b.createdAt || b.dateInscription || 0);
       return dateB - dateA;
     })
     .slice(0, 5);
@@ -261,13 +261,7 @@ export default function AdminDashboard() {
       {menuMobile && (
         <div className={styles.overlay} onClick={() => setMenuMobile(false)} />
       )}
-
-      {/* ===== SIDEBAR ===== */}
-      <aside
-        className={`${styles.sidebar} ${
-          menuMobile ? styles.sidebarOpen : ""
-        }`}
-      >
+      <aside className={`${styles.sidebar} ${menuMobile ? styles.sidebarOpen : ""}`}>
         <div className={styles.logo}>
           <div className={styles.logoIcon}>
             <GraduationCap size={26} />
@@ -276,62 +270,37 @@ export default function AdminDashboard() {
             <h2>Learning Pro</h2>
             <span>Administration</span>
           </div>
-          <button
-            className={styles.closeSidebar}
-            onClick={() => setMenuMobile(false)}
-            aria-label="Fermer le menu"
-          >
+          <button className={styles.closeSidebar} onClick={() => setMenuMobile(false)} aria-label="Fermer le menu">
             <X size={20} />
           </button>
         </div>
-
-        {/* ===== PROFIL ADMIN - SIDEBAR ===== */}
         <Link href="/dashboard/admin/profil" className={styles.profilSidebar}>
           {admin.photo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={admin.photo}
-              alt={admin.nom}
-              className={styles.profilSidebarPhoto}
-            />
+            <img src={admin.photo} alt={admin.nom} className={styles.profilSidebarPhoto} />
           ) : (
-            <div className={styles.profilSidebarAvatar}>
-              {initialesDe(admin.nom)}
-            </div>
+            <div className={styles.profilSidebarAvatar}>{initialesDe(admin.nom)}</div>
           )}
           <div className={styles.profilSidebarInfos}>
             <strong>{admin.nom}</strong>
             <span className={styles.profilSidebarRole}>
               <ShieldCheck size={13} /> Administrateur
             </span>
-            <span className={styles.profilSidebarEmail}>
-              {admin.email || "Email indisponible"}
-            </span>
+            <span className={styles.profilSidebarEmail}>{admin.email || "Email indisponible"}</span>
           </div>
           <ChevronRight size={16} className={styles.profilSidebarFleche} />
         </Link>
-
         <div className={styles.menuLabel}>MENU PRINCIPAL</div>
-
         <nav className={styles.navigation}>
-          <Link
-            href="/dashboard/admin"
-            className={`${styles.navLink} ${styles.active}`}
-          >
+          <Link href="/dashboard/admin" className={`${styles.navLink} ${styles.active}`}>
             <LayoutDashboard size={20} />
             <span>Tableau de bord</span>
           </Link>
-          <Link
-            href="/dashboard/admin/utilisateurs"
-            className={styles.navLink}
-          >
+          <Link href="/dashboard/admin/utilisateurs" className={styles.navLink}>
             <Users size={20} />
             <span>Gestion utilisateurs</span>
           </Link>
-          <Link
-            href="/dashboard/admin/utilisateurs/ajouter"
-            className={styles.navLink}
-          >
+          <Link href="/dashboard/admin/utilisateurs/ajouter" className={styles.navLink}>
             <UserPlus size={20} />
             <span>Créer un formateur</span>
           </Link>
@@ -340,7 +309,6 @@ export default function AdminDashboard() {
             <span>Mon profil</span>
           </Link>
         </nav>
-
         <div className={styles.sidebarBottom}>
           <div className={styles.adminCard}>
             <div className={styles.adminAvatar}>
@@ -357,16 +325,10 @@ export default function AdminDashboard() {
           </button>
         </div>
       </aside>
-
-      {/* ===== MAIN ===== */}
       <main className={styles.main}>
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            <button
-              className={styles.menuMobileButton}
-              onClick={() => setMenuMobile(true)}
-              aria-label="Ouvrir le menu"
-            >
+            <button className={styles.menuMobileButton} onClick={() => setMenuMobile(true)} aria-label="Ouvrir le menu">
               <Menu size={20} />
             </button>
             <div>
@@ -374,79 +336,42 @@ export default function AdminDashboard() {
               <h1>Tableau de bord</h1>
             </div>
           </div>
-
           <div className={styles.headerRight}>
-            <button
-              className={styles.refreshButton}
-              title="Actualiser"
-              onClick={chargerDashboard}
-              disabled={chargement}
-            >
+            <button className={styles.refreshButton} title="Actualiser" onClick={chargerDashboard} disabled={chargement}>
               <RefreshCw size={18} />
             </button>
-
-            {/* ===== PROFIL ADMIN - HEADER ===== */}
             <div className={styles.profileWrap}>
-              <button
-                type="button"
-                className={styles.profile}
-                onClick={() => setMenuProfil((v) => !v)}
-              >
+              <button type="button" className={styles.profile} onClick={() => setMenuProfil((v) => !v)}>
                 {admin.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={admin.photo}
-                    alt={admin.nom}
-                    className={styles.profilePhoto}
-                  />
+                  <img src={admin.photo} alt={admin.nom} className={styles.profilePhoto} />
                 ) : (
-                  <div className={styles.profileAvatar}>
-                    {initialesDe(admin.nom)}
-                  </div>
+                  <div className={styles.profileAvatar}>{initialesDe(admin.nom)}</div>
                 )}
                 <div className={styles.profileText}>
                   <strong>{admin.nom}</strong>
                   <span>Administrateur</span>
                 </div>
               </button>
-
               {menuProfil && (
                 <div className={styles.profileMenu}>
                   <div className={styles.profileMenuHead}>
                     {admin.photo ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={admin.photo}
-                        alt={admin.nom}
-                        className={styles.profileMenuPhoto}
-                      />
+                      <img src={admin.photo} alt={admin.nom} className={styles.profileMenuPhoto} />
                     ) : (
-                      <div className={styles.profileMenuAvatar}>
-                        {initialesDe(admin.nom)}
-                      </div>
+                      <div className={styles.profileMenuAvatar}>{initialesDe(admin.nom)}</div>
                     )}
                     <div>
                       <strong>{admin.nom}</strong>
-                      <span>
-                        <Mail size={12} /> {admin.email || "Email indisponible"}
-                      </span>
-                      <span>
-                        <ShieldCheck size={12} /> Administrateur
-                      </span>
+                      <span><Mail size={12} /> {admin.email || "Email indisponible"}</span>
+                      <span><ShieldCheck size={12} /> Administrateur</span>
                     </div>
                   </div>
-                  <Link
-                    href="/dashboard/admin/profil"
-                    className={styles.profileMenuLink}
-                    onClick={() => setMenuProfil(false)}
-                  >
+                  <Link href="/dashboard/admin/profil" className={styles.profileMenuLink} onClick={() => setMenuProfil(false)}>
                     <User size={17} /> Voir mon profil
                   </Link>
-                  <button
-                    type="button"
-                    className={styles.profileMenuLogout}
-                    onClick={deconnexion}
-                  >
+                  <button type="button" className={styles.profileMenuLogout} onClick={deconnexion}>
                     <LogOut size={17} /> Déconnexion
                   </button>
                 </div>
@@ -454,9 +379,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </header>
-
         <div className={styles.content}>
-          {/* ===== BIENVENUE + PROFIL ===== */}
           <section className={styles.welcome}>
             <div className={styles.welcomeText}>
               <span className={styles.welcomeBadge}>
@@ -468,43 +391,26 @@ export default function AdminDashboard() {
               <div className={styles.welcomeProfil}>
                 {admin.photo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={admin.photo}
-                    alt={admin.nom}
-                    className={styles.welcomePhoto}
-                  />
+                  <img src={admin.photo} alt={admin.nom} className={styles.welcomePhoto} />
                 ) : (
-                  <div className={styles.welcomeAvatar}>
-                    {initialesDe(admin.nom)}
-                  </div>
+                  <div className={styles.welcomeAvatar}>{initialesDe(admin.nom)}</div>
                 )}
                 <div className={styles.welcomeProfilInfos}>
                   <strong>{admin.nom}</strong>
-                  <span>
-                    <Mail size={13} /> {admin.email || "Email indisponible"}
-                  </span>
-                  <span>
-                    <ShieldCheck size={13} /> Administrateur • Compte vérifié
-                  </span>
+                  <span><Mail size={13} /> {admin.email || "Email indisponible"}</span>
+                  <span><ShieldCheck size={13} /> Administrateur • Compte vérifié</span>
                 </div>
               </div>
               <div className={styles.welcomeActions}>
-                <Link
-                  href="/dashboard/admin/utilisateurs"
-                  className={styles.welcomeButton}
-                >
+                <Link href="/dashboard/admin/utilisateurs" className={styles.welcomeButton}>
                   Gérer les utilisateurs
                   <ArrowRight size={17} />
                 </Link>
-                <Link
-                  href="/dashboard/admin/profil"
-                  className={styles.welcomeButtonSecondary}
-                >
+                <Link href="/dashboard/admin/profil" className={styles.welcomeButtonSecondary}>
                   <User size={17} /> Mon profil
                 </Link>
               </div>
             </div>
-
             <div className={styles.welcomeIllustration}>
               <div className={styles.illustrationCircle}>
                 <GraduationCap size={65} />
@@ -517,20 +423,14 @@ export default function AdminDashboard() {
               </div>
             </div>
           </section>
-
           {!tokenPresent && (
             <div className={styles.errorMessage}>
-              Aucun token de connexion n&apos;a été trouvé. Les données
-              nécessitant une authentification ne seront pas disponibles. Vous
-              pouvez néanmoins accéder à la page.
+              Aucun token de connexion n&apos;a été trouvé. Les données nécessitant une authentification ne seront pas disponibles. Vous pouvez néanmoins accéder à la page.
             </div>
           )}
-
           {erreurUtilisateur && (
             <div className={styles.errorMessage}>{erreurUtilisateur}</div>
           )}
-
-          {/* ===== STATS ===== */}
           <section className={styles.statsSection}>
             <div className={styles.sectionHeading}>
               <div>
@@ -547,9 +447,7 @@ export default function AdminDashboard() {
                       <div className={styles.statIcon}>
                         <Icone size={23} />
                       </div>
-                      <span className={styles.statNumber}>
-                        {chargement ? "..." : stat.valeur}
-                      </span>
+                      <span className={styles.statNumber}>{chargement ? "..." : stat.valeur}</span>
                     </div>
                     <h3>{stat.titre}</h3>
                     <p>{stat.description}</p>
@@ -558,8 +456,6 @@ export default function AdminDashboard() {
               })}
             </div>
           </section>
-
-          {/* ===== ACTIONS RAPIDES ===== */}
           <section className={styles.quickActions}>
             <div className={styles.sectionHeading}>
               <div>
@@ -568,10 +464,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className={styles.actionGrid}>
-              <Link
-                href="/dashboard/admin/utilisateurs/ajouter"
-                className={styles.actionCard}
-              >
+              <Link href="/dashboard/admin/utilisateurs/ajouter" className={styles.actionCard}>
                 <div className={styles.actionIcon}>
                   <UserPlus size={23} />
                 </div>
@@ -581,10 +474,7 @@ export default function AdminDashboard() {
                 </div>
                 <ExternalLink size={19} />
               </Link>
-              <Link
-                href="/dashboard/admin/utilisateurs"
-                className={styles.actionCard}
-              >
+              <Link href="/dashboard/admin/utilisateurs" className={styles.actionCard}>
                 <div className={styles.actionIcon}>
                   <Users size={23} />
                 </div>
@@ -596,8 +486,6 @@ export default function AdminDashboard() {
               </Link>
             </div>
           </section>
-
-          {/* ===== UTILISATEURS RÉCENTS ===== */}
           <section className={styles.usersSection}>
             <div className={styles.usersHeader}>
               <div className={styles.sectionHeading}>
@@ -606,25 +494,15 @@ export default function AdminDashboard() {
                   <p>Les derniers comptes enregistrés</p>
                 </div>
               </div>
-              <Link
-                href="/dashboard/admin/utilisateurs"
-                className={styles.viewAll}
-              >
+              <Link href="/dashboard/admin/utilisateurs" className={styles.viewAll}>
                 Tout afficher
                 <ArrowRight size={16} />
               </Link>
             </div>
-
             <div className={styles.searchBox}>
               <Search size={18} />
-              <input
-                type="text"
-                placeholder="Rechercher un utilisateur..."
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-              />
+              <input type="text" placeholder="Rechercher un utilisateur..." value={recherche} onChange={(e) => setRecherche(e.target.value)} />
             </div>
-
             <div className={styles.userList}>
               {chargement ? (
                 <div className={styles.emptyState}>
@@ -637,45 +515,25 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 utilisateursFiltres.map((user, index) => (
-                  <div
-                    className={styles.userRow}
-                    key={user.idUtilisateur || user.id || index}
-                  >
+                  <div className={styles.userRow} key={user.idUtilisateur || user.id || index}>
                     <div className={styles.userIdentity}>
-                      <div className={styles.userAvatar}>
-                        {initiales(user)}
-                      </div>
+                      <div className={styles.userAvatar}>{initiales(user)}</div>
                       <div className={styles.userDetails}>
                         <strong>{nomUtilisateur(user)}</strong>
                         <span>{user.email || "Email indisponible"}</span>
                       </div>
                     </div>
                     <div className={styles.userMeta}>
-                      <span
-                        className={`${styles.roleBadge} ${
-                          (user.role || "").toLowerCase() === "formateur"
-                            ? styles.roleTrainer
-                            : (user.role || "").toLowerCase() === "apprenant"
-                            ? styles.roleLearner
-                            : styles.roleAdmin
-                        }`}
-                      >
+                      <span className={`${styles.roleBadge} ${(user.role || "").toLowerCase() === "formateur" ? styles.roleTrainer : (user.role || "").toLowerCase() === "apprenant" ? styles.roleLearner : styles.roleAdmin}`}>
                         {roleLabel(user.role)}
                       </span>
-                      <span className={styles.userDate}>
-                        {formatDate(
-                          user.dateCreation ||
-                            user.createdAt ||
-                            user.dateInscription
-                        )}
-                      </span>
+                      <span className={styles.userDate}>{formatDate(user.dateCreation || user.createdAt || user.dateInscription)}</span>
                     </div>
                   </div>
                 ))
               )}
             </div>
           </section>
-
           <footer className={styles.footer}>
             <span>© 2026 Learning Pro</span>
             <span>Administration de la plateforme</span>
