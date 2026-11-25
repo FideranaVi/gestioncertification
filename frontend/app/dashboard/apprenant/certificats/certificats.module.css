@@ -1,24 +1,96 @@
-/* ===== PAGE - Petit & Pro comme SoloLearn ===== */
+/* ===== PAGE - Bleu nuit pro, comme SoloLearn, pas vert fluo ===== */
 .page {
   min-height: 100vh;
-  background: #f6f7fb;
-  padding: 20px 16px 40px;
+  background: #f1f3f9;
+  padding: 0 0 40px;
   font-family: Inter, system-ui, -apple-system, sans-serif;
-  color: #1a1d29;
+  color: #1e293b;
+}
+
+/* ===== NAVIGATION HAUTE - SoloLearn ===== */
+.topNav {
+  background: #1e293b;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.logoIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.navLinks {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.navLinks a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 8px;
+}
+
+.navLinks a:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.1);
+}
+
+.navActive {
+  color: #fff !important;
+  background: #3b82f6 !important;
+}
+
+.navBack {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .container {
   max-width: 880px;
   margin: 0 auto;
+  padding: 20px 16px 0;
 }
 
-/* ===== HEADER - Compact ===== */
+/* ===== HEADER ===== */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
 }
 
@@ -27,24 +99,24 @@
   font-weight: 800;
   margin: 4px 0 4px;
   letter-spacing: -0.3px;
+  color: #0f172a;
 }
 
 .headerContent h1 span {
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .headerContent p {
   font-size: 13.5px;
-  color: #6b7280;
+  color: #64748b;
   margin: 0;
-  max-width: 520px;
 }
 
 .eyebrow {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  color: #16a34a;
+  color: #2563eb;
   text-transform: uppercase;
 }
 
@@ -53,9 +125,8 @@
   gap: 8px;
 }
 
-.backButton,
 .refreshButton {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   background: #fff;
   padding: 8px 12px;
   border-radius: 8px;
@@ -64,15 +135,13 @@
   cursor: pointer;
 }
 
-.backButton:hover,
 .refreshButton:hover {
-  border-color: #16a34a;
-  color: #16a34a;
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 /* ===== ALERTS ===== */
-.error,
-.success {
+.error, .success {
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -89,22 +158,22 @@
 }
 
 .success {
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
-/* ===== SUMMARY - Petite barre SoloLearn ===== */
+/* ===== SUMMARY ===== */
 .summary {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .summaryLeft {
@@ -117,8 +186,8 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #dcfce7;
-  color: #16a34a;
+  background: #dbeafe;
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,7 +199,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .summaryLeft h2 {
@@ -141,7 +210,7 @@
 
 .summaryLeft p {
   font-size: 13px;
-  color: #6b7280;
+  color: #64748b;
   margin: 0;
 }
 
@@ -153,7 +222,7 @@
 .summaryStat span {
   display: block;
   font-size: 11px;
-  color: #6b7280;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -162,16 +231,12 @@
   display: block;
   font-size: 28px;
   line-height: 1;
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .summaryStat small {
   font-size: 11px;
-  color: #9ca3af;
-}
-
-.summaryDecoration {
-  display: none;
+  color: #94a3b8;
 }
 
 /* ===== SECTION ===== */
@@ -186,7 +251,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .sectionHeading h2 {
@@ -197,13 +262,13 @@
 
 .sectionHeading p {
   font-size: 13px;
-  color: #6b7280;
+  color: #64748b;
   margin: 0;
 }
 
 .countBadge {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: #eff6ff;
+  color: #2563eb;
   font-size: 12px;
   font-weight: 700;
   padding: 6px 10px;
@@ -211,7 +276,7 @@
   white-space: nowrap;
 }
 
-/* ===== LISTE - Style SoloLearn, 1 ligne par certificat ===== */
+/* ===== LISTE ===== */
 .certificateGrid {
   display: flex;
   flex-direction: column;
@@ -220,85 +285,72 @@
 
 .certificateCard {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
   display: flex;
-  gap: 0;
 }
 
-/* On cache le gros aperçu doré, on garde juste une petite barre latérale */
 .certificatePreview {
-  width: 72px;
+  width: 110px;
   flex-shrink: 0;
-  background: #f0fdf4;
-  border-right: 1px solid #e5e7eb;
+  background: #1e293b;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 6px;
+  padding: 14px 8px;
 }
 
 .certificateBorder {
   text-align: center;
 }
 
-.previewTop,
-.previewBottom {
-  display: none;
-}
-
 .previewContent {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .previewEyebrow {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.8px;
-  color: #6b7280;
-  text-align: center;
+  color: #93c5fd;
 }
 
 .previewContent h3 {
-  font-size: 13px;
+  font-size: 22px;
   margin: 0;
-}
-
-.previewContent p {
-  display: none;
-}
-
-.studentName {
-  display: none;
-}
-
-.goldLine {
-  width: 24px;
-  height: 3px;
-  background: #facc15;
-  border-radius: 999px;
+  color: #fff;
 }
 
 .previewContent h4 {
   font-size: 11px;
   font-weight: 600;
-  color: #374151;
+  color: #e2e8f0;
   margin: 0;
   text-align: center;
   line-height: 1.2;
 }
 
-.brand,
-.medal,
-.seal {
-  display: none;
+.goldLine {
+  width: 24px;
+  height: 3px;
+  background: #f59e0b;
+  border-radius: 999px;
 }
 
-/* ===== INFO - Compact ===== */
+.previewName {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ===== INFO ===== */
 .certificateInfo {
   flex: 1;
   padding: 14px 16px;
@@ -323,7 +375,7 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .verifiedBadge {
@@ -332,9 +384,9 @@
   padding: 5px 9px;
   border-radius: 999px;
   white-space: nowrap;
-  background: #f0fdf4;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 .infoGrid {
@@ -342,8 +394,8 @@
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid #f3f4f6;
-  border-bottom: 1px solid #f3f4f6;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
   margin-bottom: 10px;
 }
 
@@ -352,28 +404,27 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.8px;
-  color: #9ca3af;
+  color: #94a3b8;
   margin-bottom: 2px;
 }
 
 .infoItem strong {
   font-size: 12.5px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1e293b;
   line-height: 1.3;
 }
 
 .statusInfo {
   font-size: 12.5px;
-  color: #4b5563;
+  color: #475569;
   margin-bottom: 10px;
 }
 
-/* ===== BUTTONS - Petits ===== */
 .downloadButton {
   width: 100%;
   border: none;
-  background: #16a34a;
+  background: #2563eb;
   color: #fff;
   font-weight: 700;
   font-size: 13px;
@@ -387,18 +438,18 @@
 }
 
 .downloadButton:hover {
-  background: #15803d;
+  background: #1d4ed8;
 }
 
 .downloadButton:disabled {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: #e2e8f0;
+  color: #64748b;
   cursor: not-allowed;
 }
 
 .downloadHint {
   font-size: 12px;
-  color: #6b7280;
+  color: #64748b;
   margin: 8px 0 0;
   display: flex;
   gap: 6px;
@@ -419,10 +470,9 @@
   to { transform: rotate(360deg); }
 }
 
-/* ===== EMPTY / LOADING ===== */
 .empty {
   background: #fff;
-  border: 1px dashed #d1d5db;
+  border: 1px dashed #cbd5e1;
   border-radius: 12px;
   padding: 28px 20px;
   text-align: center;
@@ -432,7 +482,7 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #f0fdf4;
+  background: #eff6ff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -447,14 +497,14 @@
 
 .empty p {
   font-size: 13px;
-  color: #6b7280;
+  color: #64748b;
   max-width: 440px;
   margin: 0 auto 14px;
 }
 
 .primaryButton,
 .footerButton {
-  background: #16a34a;
+  background: #2563eb;
   color: #fff;
   border: none;
   padding: 9px 14px;
@@ -466,7 +516,7 @@
 
 .loadingContainer {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 40px 20px;
   text-align: center;
@@ -477,29 +527,17 @@
 .spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #16a34a;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 12px;
 }
 
-.loadingContainer h3 {
-  font-size: 15px;
-  margin: 0 0 4px;
-}
-
-.loadingContainer p {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 0;
-}
-
-/* ===== FOOTER ===== */
 .footer {
   margin-top: 20px;
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
@@ -519,7 +557,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #dcfce7;
+  background: #dbeafe;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -532,53 +570,40 @@
 
 .footer p {
   font-size: 12.5px;
-  color: #6b7280;
+  color: #64748b;
   margin: 2px 0 0;
 }
 
 .copyright {
   text-align: center;
   font-size: 11.5px;
-  color: #9ca3af;
+  color: #94a3b8;
   margin-top: 14px;
 }
 
-/* ===== MOBILE ===== */
 @media (max-width: 640px) {
+  .topNav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .certificateCard {
     flex-direction: column;
   }
-
   .certificatePreview {
     width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #e5e7eb;
     padding: 10px;
   }
-
   .infoGrid {
     grid-template-columns: 1fr 1fr;
   }
-
   .summary {
     flex-direction: column;
     align-items: flex-start;
   }
-
   .summaryStat {
     text-align: left;
   }
-
   .header {
     flex-direction: column;
-  }
-
-  .headerActions {
-    width: 100%;
-  }
-
-  .backButton,
-  .refreshButton {
-    flex: 1;
   }
 }
