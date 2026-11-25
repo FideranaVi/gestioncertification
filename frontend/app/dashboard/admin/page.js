@@ -59,9 +59,19 @@ function lireUtilisateurStocke() {
 async function requete(url, token) {
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
+    cache: "no-store",
   });
-  if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
-  return response.json();
+  const text = await response.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text };
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} : ${data.message || text || "Erreur serveur"}`);
+  }
+  return data;
 }
 
 function extraireListe(data) {
@@ -174,11 +184,9 @@ export default function AdminDashboard() {
     try {
       const data = await requete(`${API}/utilisateurs`, token);
       setUtilisateurs(extraireListe(data));
-    } catch {
+    } catch (err) {
       setUtilisateurs([]);
-      setErreurUtilisateur(
-        "Les utilisateurs n'ont pas pu être chargés. Vérifiez votre connexion au serveur."
-      );
+      setErreurUtilisateur(`DEBUG: ${err.message} | API=${API}/utilisateurs | token=${token ? "present" : "ABSENT"} | role=${lirePayload(token).role || "?"}`);
     }
     setChargement(false);
   }
@@ -193,11 +201,9 @@ export default function AdminDashboard() {
         const data = await requete(`${API}/utilisateurs`, token);
         if (!actif) return;
         setUtilisateurs(extraireListe(data));
-      } catch {
+      } catch (err) {
         if (!actif) return;
-        setErreurUtilisateur(
-          "Impossible de charger les utilisateurs. Vérifiez le serveur et votre session."
-        );
+        setErreurUtilisateur(`DEBUG: ${err.message} | API=${API}/utilisateurs | token=${token ? "present" : "ABSENT"} | role=${lirePayload(token).role || "?"}`);
       }
       if (actif) setChargement(false);
     }
