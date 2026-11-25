@@ -4,7 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API = "http://localhost:5000/api/auth";
+function obtenirApiAuth() {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const nettoye = String(base).replace(/\/$/, "");
+  // Si NEXT_PUBLIC_API_URL = https://...onrender.com/api -> on ajoute /auth
+  // Si = https://...onrender.com/api/auth -> on garde tel quel
+  // Si = https://...onrender.com -> on ajoute /api/auth
+  if (nettoye.endsWith("/api/auth")) return nettoye;
+  if (nettoye.endsWith("/api")) return `${nettoye}/auth`;
+  return `${nettoye}/api/auth`;
+}
+const API = obtenirApiAuth();
 
 export default function ConnexionPage() {
   const router = useRouter();
@@ -57,7 +67,7 @@ export default function ConnexionPage() {
         body: JSON.stringify({ credential: response.credential })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         throw new Error(data.message || "Connexion Google échouée.");
@@ -70,7 +80,12 @@ export default function ConnexionPage() {
       sauvegarderSession(data);
       router.replace(data.redirectTo || "/dashboard/apprenant");
     } catch (error) {
-      setErreur(error.message || "Impossible de se connecter avec Google.");
+      // ✅ Message clair sur téléphone quand le backend ne répond pas
+      if (error?.message?.includes("Failed to fetch") || error?.name === "TypeError") {
+        setErreur("Impossible de joindre le serveur. Vérifiez votre connexion et réessayez (le serveur Render peut mettre 30s à se réveiller).");
+      } else {
+        setErreur(error.message || "Impossible de se connecter avec Google.");
+      }
     } finally {
       setChargementGoogle(false);
     }
@@ -150,7 +165,7 @@ export default function ConnexionPage() {
         })
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(data.message || "Erreur lors de la connexion.");
@@ -163,7 +178,11 @@ export default function ConnexionPage() {
       sauvegarderSession(data);
       router.replace(data.redirectTo || "/dashboard/apprenant");
     } catch (error) {
-      setErreur(error.message || "Impossible de contacter le serveur.");
+      if (error?.message?.includes("Failed to fetch") || error?.name === "TypeError") {
+        setErreur("Impossible de joindre le serveur. Vérifiez votre connexion et réessayez (le serveur Render peut mettre 30s à se réveiller).");
+      } else {
+        setErreur(error.message || "Impossible de contacter le serveur.");
+      }
     } finally {
       setChargement(false);
     }
