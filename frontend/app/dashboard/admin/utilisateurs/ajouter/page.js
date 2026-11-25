@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -8,6 +8,15 @@ import styles from "./ajouter.module.css";
 
 import { obtenirApiAdmin } from "@/lib/api";
 const API = obtenirApiAdmin();
+
+function getToken() {
+  if (typeof window === "undefined") return "";
+  return (
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token") ||
+    ""
+  );
+}
 
 async function lireReponse(response) {
   const text = await response.text();
@@ -46,6 +55,11 @@ export default function AjouterUtilisateurPage() {
     e.preventDefault();
     setErreur("");
 
+    if (!formulaire.nom.trim() || !formulaire.prenom.trim() || !formulaire.email.trim()) {
+      setErreur("Nom, prénom et email sont obligatoires.");
+      return;
+    }
+
     if (formulaire.pwd.length < 8) {
       setErreur("Le mot de passe doit contenir au moins 8 caractères.");
       return;
@@ -59,13 +73,16 @@ export default function AjouterUtilisateurPage() {
     try {
       setEnregistrement(true);
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
+      if (!token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+      }
 
-      const response = await fetch(API, {
+      const response = await fetch(`${API}/utilisateurs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           nom: formulaire.nom.trim(),
@@ -79,7 +96,9 @@ export default function AjouterUtilisateurPage() {
       const data = await lireReponse(response);
 
       if (!response.ok) {
-        throw new Error(data.message || data.erreur || "Impossible de créer cet utilisateur.");
+        throw new Error(
+          `HTTP ${response.status} : ${data.message || data.erreur || "Impossible de créer cet utilisateur."}`
+        );
       }
 
       router.push("/dashboard/admin/utilisateurs");
@@ -168,7 +187,7 @@ export default function AjouterUtilisateurPage() {
               >
                 <option value="apprenant">Apprenant</option>
                 <option value="formateur">Formateur</option>
-                <option value="administrateur">Administrateur</option>
+                <option value="admin">Administrateur</option>
               </select>
               <small>Le rôle détermine les autorisations du compte.</small>
             </div>

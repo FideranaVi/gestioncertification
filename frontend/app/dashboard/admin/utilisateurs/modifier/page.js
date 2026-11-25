@@ -1,5 +1,4 @@
-
-"use client";
+﻿"use client";
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,9 +8,13 @@ import styles from "./modifier.module.css";
 import { obtenirApiAdmin } from "@/lib/api";
 const API = obtenirApiAdmin();
 
+function getToken() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+}
+
 async function lireReponse(response) {
   const text = await response.text();
-
   try {
     return text ? JSON.parse(text) : {};
   } catch {
@@ -29,7 +32,7 @@ function ModifierFormulaire() {
     prenom: "",
     email: "",
     role: "",
-    pwd: ""
+    pwd: "",
   });
 
   const [chargement, setChargement] = useState(true);
@@ -48,36 +51,35 @@ function ModifierFormulaire() {
       }
 
       try {
-        const token = localStorage.getItem("token");
-
+        const token = getToken();
         if (!token) {
           throw new Error("Session expirée. Veuillez vous reconnecter.");
         }
 
-        const response = await fetch(`${API}/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          cache: "no-store"
+        const response = await fetch(`${API}/utilisateurs/${encodeURIComponent(id)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
         });
 
         const data = await lireReponse(response);
 
         if (!response.ok) {
           throw new Error(
-            data.message || "Impossible de récupérer cet utilisateur."
+            `HTTP ${response.status} : ${data.message || "Impossible de récupérer cet utilisateur."}`
           );
         }
 
         const utilisateur = data.utilisateur || data;
 
         if (actif) {
+          let role = (utilisateur.role || "").toLowerCase();
+          if (role === "administrateur") role = "admin";
           setForm({
             nom: utilisateur.nom || "",
             prenom: utilisateur.prenom || "",
             email: utilisateur.email || "",
-            role: utilisateur.role || "",
-            pwd: ""
+            role: role,
+            pwd: "",
           });
         }
       } catch (error) {
@@ -96,25 +98,18 @@ function ModifierFormulaire() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-
     setForm((previous) => ({
       ...previous,
-      [name]: value
+      [name]: value,
     }));
   }
 
   async function modifierUtilisateur(e) {
     e.preventDefault();
-
     setErreur("");
     setSucces("");
 
-    if (
-      !form.nom.trim() ||
-      !form.prenom.trim() ||
-      !form.email.trim() ||
-      !form.role
-    ) {
+    if (!form.nom.trim() || !form.prenom.trim() || !form.email.trim() || !form.role) {
       setErreur("Veuillez remplir tous les champs obligatoires.");
       return;
     }
@@ -127,33 +122,36 @@ function ModifierFormulaire() {
     try {
       setEnregistrement(true);
 
-      const token = localStorage.getItem("token");
+      const token = getToken();
+      if (!token) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+      }
 
       const modifications = {
         nom: form.nom.trim(),
         prenom: form.prenom.trim(),
         email: form.email.trim().toLowerCase(),
-        role: form.role
+        role: form.role,
       };
 
       if (form.pwd.trim()) {
         modifications.pwd = form.pwd;
       }
 
-      const response = await fetch(`${API}/${id}`, {
+      const response = await fetch(`${API}/utilisateurs/${encodeURIComponent(id)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(modifications)
+        body: JSON.stringify(modifications),
       });
 
       const data = await lireReponse(response);
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Erreur lors de la modification."
+          `HTTP ${response.status} : ${data.message || "Erreur lors de la modification."}`
         );
       }
 
@@ -163,7 +161,6 @@ function ModifierFormulaire() {
         router.push("/dashboard/admin/utilisateurs");
         router.refresh();
       }, 1000);
-
     } catch (error) {
       setErreur(error.message);
     } finally {
@@ -172,11 +169,7 @@ function ModifierFormulaire() {
   }
 
   if (chargement) {
-    return (
-      <div className={styles.loading}>
-        Chargement des informations...
-      </div>
-    );
+    return <div className={styles.loading}>Chargement des informations...</div>;
   }
 
   if (erreur && !form.nom && !form.prenom && !form.email) {
@@ -184,10 +177,7 @@ function ModifierFormulaire() {
       <main className={styles.page}>
         <div className={styles.container}>
           <div className={styles.error}>{erreur}</div>
-          <Link
-            href="/dashboard/admin/utilisateurs"
-            className={styles.backButton}
-          >
+          <Link href="/dashboard/admin/utilisateurs" className={styles.backButton}>
             ← Retour aux utilisateurs
           </Link>
         </div>
@@ -200,27 +190,18 @@ function ModifierFormulaire() {
       <div className={styles.container}>
         <header className={styles.header}>
           <div>
-            <span className={styles.subtitle}>
-              ESPACE ADMINISTRATEUR
-            </span>
+            <span className={styles.subtitle}>ESPACE ADMINISTRATEUR</span>
             <h1>Modifier un utilisateur</h1>
             <p>Actualisez les informations du compte utilisateur.</p>
           </div>
-
-          <Link
-            href="/dashboard/admin/utilisateurs"
-            className={styles.backButton}
-          >
+          <Link href="/dashboard/admin/utilisateurs" className={styles.backButton}>
             ← Retour
           </Link>
         </header>
 
         <form onSubmit={modifierUtilisateur} className={styles.form}>
           <div className={styles.formHeader}>
-            <div className={styles.avatar}>
-              {form.nom.charAt(0).toUpperCase() || "U"}
-            </div>
-
+            <div className={styles.avatar}>{form.nom.charAt(0).toUpperCase() || "U"}</div>
             <div>
               <h2>Informations personnelles</h2>
               <p>Compte utilisateur #{id}</p>
@@ -279,15 +260,9 @@ function ModifierFormulaire() {
 
             <div className={styles.field}>
               <label htmlFor="role">Rôle *</label>
-              <select
-                id="role"
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                required
-              >
+              <select id="role" name="role" value={form.role} onChange={handleChange} required>
                 <option value="">Choisir un rôle</option>
-                <option value="administrateur">Administrateur</option>
+                <option value="admin">Administrateur</option>
                 <option value="formateur">Formateur</option>
                 <option value="apprenant">Apprenant</option>
               </select>
@@ -296,10 +271,7 @@ function ModifierFormulaire() {
 
           <section className={styles.passwordSection}>
             <h3>Changer le mot de passe</h3>
-            <p>
-              Laissez vide pour conserver le mot de passe actuel.
-            </p>
-
+            <p>Laissez vide pour conserver le mot de passe actuel.</p>
             <div className={styles.field}>
               <label htmlFor="pwd">Nouveau mot de passe</label>
               <input
@@ -315,21 +287,11 @@ function ModifierFormulaire() {
           </section>
 
           <div className={styles.actions}>
-            <Link
-              href="/dashboard/admin/utilisateurs"
-              className={styles.cancelButton}
-            >
+            <Link href="/dashboard/admin/utilisateurs" className={styles.cancelButton}>
               Annuler
             </Link>
-
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={enregistrement}
-            >
-              {enregistrement
-                ? "Enregistrement..."
-                : "Enregistrer les modifications"}
+            <button type="submit" className={styles.submitButton} disabled={enregistrement}>
+              {enregistrement ? "Enregistrement..." : "Enregistrer les modifications"}
             </button>
           </div>
         </form>
