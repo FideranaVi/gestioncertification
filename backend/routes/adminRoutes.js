@@ -1,36 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const utilisateurRoutes = require("./utilisateurRoutes");
 
-// 1. Token depuis authMiddleware
-const { verifierToken } = require("../middlewares/authMiddleware");
-
-// 2. Role depuis roleMiddlewares (avec S)
-let verifierRole;
-try {
-  ({ verifierRole } = require("../middlewares/roleMiddlewares"));
-} catch {
-  // Fallback si le fichier s'appelle roleMiddleware sans S sur Render
-  ({ verifierRole } = require("../middlewares/roleMiddleware"));
-}
-
-// Si verifierRole n'existe pas, on fait un check admin simple
-const checkAdmin = verifierRole
-  ? verifierRole("admin")
-  : (req, res, next) => {
-      if (req.utilisateur?.role === "admin" || req.user?.role === "admin" || req.decoded?.role === "admin") {
-        return next();
-      }
-      return res.status(403).json({ message: "Accès réservé à l'administrateur." });
-    };
-
-const utilisateurController = require("../controllers/utilisateurController");
-
-router.use(verifierToken, checkAdmin);
-
-router.get("/utilisateurs", utilisateurController.listerUtilisateurs || utilisateurController.getAllUtilisateurs || utilisateurController.getUtilisateurs);
-router.post("/utilisateurs", utilisateurController.creerUtilisateur || utilisateurController.createUtilisateur);
-router.get("/utilisateurs/:id", utilisateurController.getUtilisateurById || utilisateurController.getUtilisateur);
-router.put("/utilisateurs/:id", utilisateurController.modifierUtilisateur || utilisateurController.updateUtilisateur);
-router.delete("/utilisateurs/:id", utilisateurController.supprimerUtilisateur || utilisateurController.deleteUtilisateur);
+// On réutilise les mêmes routes que /api/utilisateur, mais sous /api/admin
+// Pas besoin de connaître les noms des fonctions du controller
+router.use("/", utilisateurRoutes);
 
 module.exports = router;
