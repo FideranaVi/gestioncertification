@@ -32,15 +32,12 @@ function lireRoleToken() {
   } catch { return "?"; }
 }
 
-// ===== SEULE FONCTION REMPLACÉE =====
-// CONFORME BACKEND : GET /api/admin/utilisateurs?search=&role=administrateur&limit=100
 async function chargerUtilisateurs(recherche = "", roleFiltre = "") {
   const token = getToken();
   if (!token) throw new Error("Session expirée. Veuillez vous reconnecter.");
 
   const params = new URLSearchParams({ limit: "100", page: "1", sortBy: "idUtilisateur", order: "DESC" });
   if (String(recherche || "").trim()) params.set("search", String(recherche).trim());
-  // Backend attend administrateur en base, pas admin
   if (roleFiltre) params.set("role", roleFiltre === "admin" ? "administrateur" : roleFiltre);
 
   const response = await fetch(`${API}/utilisateurs?${params.toString()}`, {
@@ -64,7 +61,6 @@ async function chargerUtilisateurs(recherche = "", roleFiltre = "") {
   if (Array.isArray(data.data)) return data.data;
   return [];
 }
-// ===== FIN REMPLACEMENT =====
 
 function getIdUtilisateur(user) { return user?.idUtilisateur ?? user?.id ?? user?.id_utilisateur ?? null; }
 
@@ -248,22 +244,30 @@ export default function AdminUtilisateursPage() {
               {utilisateurs.length === 0 && <Link href="/dashboard/admin/utilisateurs/ajouter">Ajouter mon premier utilisateur</Link>}
             </div>
           ) : (
-            <div className={styles.userGrid}>
+            <div className={styles.userList}>
               {utilisateursFiltres.map((user) => {
                 const id = getIdUtilisateur(user);
                 const rn = roleNormalise(user.role);
                 return (
-                  <article className={styles.userCard} key={id}>
-                    <div className={styles.cardTop}>
+                  <article className={styles.userRow} key={id}>
+                    <div className={styles.userMain}>
                       <span className={styles.userAvatar}>{initiales(user)}</span>
-                      <span className={`${styles.roleBadge} ${rn === "formateur" ? styles.roleTrainer : rn === "apprenant" ? styles.roleLearner : styles.roleAdmin}`}>{roleLabel(user.role)}</span>
+                      <div className={styles.userInfos}>
+                        <h3>{nomUtilisateur(user)}</h3>
+                        <p><Mail size={13} /> {user.email || "Email indisponible"}</p>
+                      </div>
                     </div>
-                    <h3>{nomUtilisateur(user)}</h3>
-                    <p className={styles.userEmail}><Mail size={14} /> {user.email || "Email indisponible"}</p>
-                    <div className={styles.userMeta}><span>INSCRIT LE</span><strong>{formatDate(user.dateCreation || user.createdAt || user.dateInscription)}</strong></div>
-                    <div className={styles.cardFooter}>
-                      <Link href={`/dashboard/admin/utilisateurs/modifier?id=${encodeURIComponent(id)}`} className={styles.editButton}><Pencil size={16} /> Modifier</Link>
-                      <button type="button" className={styles.deleteButton} onClick={() => supprimerUtilisateur(user)} disabled={suppression !== null}><Trash2 size={16} />{suppression === id ? "Suppression..." : "Supprimer"}</button>
+
+                    <div className={styles.userMeta}>
+                      <span className={`${styles.roleBadge} ${rn === "formateur" ? styles.roleTrainer : rn === "apprenant" ? styles.roleLearner : styles.roleAdmin}`}>
+                        {roleLabel(user.role)}
+                      </span>
+                      <span className={styles.userDate}>{formatDate(user.dateCreation || user.createdAt || user.dateInscription)}</span>
+                    </div>
+
+                    <div className={styles.cardActions}>
+                      <Link href={`/dashboard/admin/utilisateurs/modifier?id=${encodeURIComponent(id)}`} className={styles.editButton}><Pencil size={15} /> Modifier</Link>
+                      <button type="button" className={styles.deleteButton} onClick={() => supprimerUtilisateur(user)} disabled={suppression !== null}><Trash2 size={15} />{suppression === id ? "..." : "Supprimer"}</button>
                     </div>
                   </article>
                 );
