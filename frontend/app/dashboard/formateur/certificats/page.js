@@ -1,498 +1,242 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Award,
-  Search,
-  Check,
-  Clock,
-  XCircle,
-  RefreshCw,
-  FileText,
-  Filter,
-  ArrowLeft,
-  LayoutDashboard,
-  X,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
 import styles from "./certificats.module.css";
-
 import { obtenirApiFormateur } from "@/lib/api";
+
 const API = obtenirApiFormateur();
 
-function obtenirToken() {
-  if (typeof window === "undefined") return null;
-  return sessionStorage.getItem("token") || localStorage.getItem("token");
-}
-
-function formaterDate(date) {
-  if (!date) return "—";
-  const valeur = new Date(date);
-  if (Number.isNaN(valeur.getTime())) return "—";
-  return valeur.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function nomComplet(utilisateur) {
-  if (!utilisateur) return "Apprenant inconnu";
-  return (
-    [utilisateur.prenom, utilisateur.nom].filter(Boolean).join(" ") ||
-    "Apprenant inconnu"
-  );
-}
-
-async function recupererCertificats() {
-  const token = obtenirToken();
-  if (!token) throw new Error("Session expirée. Veuillez vous reconnecter.");
-  const response = await fetch(`${API}/certificats`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || "Impossible de charger les certificats.");
-  }
-  const liste = Array.isArray(data)
-    ? data
-    : data.certificats || data.data || [];
-  if (!Array.isArray(liste)) throw new Error("Les données reçues sont invalides.");
-  return liste;
-}
-
-export default function CertificationsPage() {
+export default function CertificatsFormateurPage() {
+  const router = useRouter();
   const [certificats, setCertificats] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
-  const [recherche, setRecherche] = useState("");
-  const [filtreStatut, setFiltreStatut] = useState("tous");
-  const [actionEnCours, setActionEnCours] = useState(null);
-  const [message, setMessage] = useState("");
+  const [succes, setSucces] = useState("");
+  const [traitement, setTraitement] = useState(null);
+  const [filtre, setFiltre] = useState("tous");
 
-  const chargerCertificats = useCallback(async () => {
-    setErreur("");
-    try {
-      const liste = await recupererCertificats();
-      setCertificats(liste);
-    } catch (error) {
-      setErreur(error.message || "Une erreur est survenue.");
-    }
-  }, []);
-
+  // FIX: setState only inside setTimeout callback, never sync in effect
   useEffect(() => {
-    let actif = true;
-    async function charger() {
-      try {
-        const liste = await recupererCertificats();
-        if (actif) setCertificats(liste);
-      } catch (error) {
-        if (actif) setErreur(error.message || "Une erreur est survenue.");
-      } finally {
-        if (actif) setChargement(false);
+    const timer = setTimeout(() => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setErreur("Session expiree. Veuillez vous reconnecter.");
+        setChargement(false);
+        return;
       }
-    }
-    charger();
-    return () => {
-      actif = false;
-    };
+      fetch(API + "/certificats/formateur", { headers: { Authorization: "Bearer " + token } })
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.message || "Impossible de charger les certificats.");
+          return data;
+        })
+        .then((data) => {
+          if (Array.isArray(data.certificats)) setCertificats(data.certificats);
+          else if (Array.isArray(data)) setCertificats(data);
+          else setCertificats([]);
+          setChargement(false);
+        })
+        .catch((error) => {
+          setErreur(error.message);
+          setChargement(false);
+        });
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  const statistiques = useMemo(
-    () => ({
-      total: certificats.length,
-      valides: certificats.filter(
-        (item) => item.statutCertificat === "validee"
-      ).length,
-      attente: certificats.filter(
-        (item) => item.statutCertificat === "en_attente"
-      ).length,
-      annules: certificats.filter(
-        (item) => item.statutCertificat === "annulee"
-      ).length,
-    }),
-    [certificats]
-  );
-
-  const certificatsFiltres = useMemo(() => {
-    const terme = recherche.trim().toLowerCase();
-    return certificats.filter((certificat) => {
-      const apprenant = nomComplet(certificat.apprenant);
-      const formation = certificat.formation?.titre || "";
-      const numero = certificat.numeroCertificat || "";
-      const correspondRecherche =
-        !terme ||
-        apprenant.toLowerCase().includes(terme) ||
-        formation.toLowerCase().includes(terme) ||
-        numero.toLowerCase().includes(terme);
-      const correspondStatut =
-        filtreStatut === "tous" || certificat.statutCertificat === filtreStatut;
-      return correspondRecherche && correspondStatut;
-    });
-  }, [certificats, recherche, filtreStatut]);
-
-  async function actualiser() {
+  const recharger = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErreur("Session expiree. Veuillez vous reconnecter.");
+      return;
+    }
     setChargement(true);
-    setMessage("");
     setErreur("");
-    try {
-      const liste = await recupererCertificats();
-      setCertificats(liste);
-    } catch (error) {
-      setErreur(error.message || "Une erreur est survenue.");
-    } finally {
-      setChargement(false);
-    }
-  }
+    fetch(API + "/certificats/formateur", { headers: { Authorization: "Bearer " + token } })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Impossible de charger les certificats.");
+        return data;
+      })
+      .then((data) => {
+        if (Array.isArray(data.certificats)) setCertificats(data.certificats);
+        else if (Array.isArray(data)) setCertificats(data);
+        else setCertificats([]);
+        setChargement(false);
+      })
+      .catch((error) => {
+        setErreur(error.message);
+        setChargement(false);
+      });
+  };
 
-  async function modifierStatut(certificat, statut) {
-    const confirmation = window.confirm(
-      statut === "validee"
-        ? "Voulez-vous valider ce certificat ?"
-        : "Voulez-vous annuler ce certificat ?"
+  const formaterDate = (date) => {
+    if (!date) return "Date non disponible";
+    const valeur = new Date(date);
+    if (Number.isNaN(valeur.getTime())) return "Date non disponible";
+    return valeur.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+  };
+
+  const obtenirTitre = (item) => {
+    if (item.formation && item.formation.titre) return item.formation.titre;
+    if (item.Formation && item.Formation.titre) return item.Formation.titre;
+    if (item.titreFormation) return item.titreFormation;
+    return "Formation " + (item.numFormation || "");
+  };
+
+  const obtenirNomComplet = (utilisateur) => {
+    if (!utilisateur) return "Non renseigne";
+    const nom = (utilisateur.nom || "").trim().toUpperCase();
+    let prenom = (utilisateur.prenom || "").trim();
+    if (prenom) prenom = prenom.charAt(0).toUpperCase() + prenom.slice(1).toLowerCase();
+    const complet = [nom, prenom].filter(Boolean).join(" ");
+    return complet || "Non renseigne";
+  };
+
+  const obtenirStatut = (item) => item.statutCertificat || "en_attente";
+
+  const obtenirLibelleStatut = (statut) => {
+    if (statut === "validee") return "Valide";
+    if (statut === "annulee") return "Refuse";
+    return "En attente";
+  };
+
+  const traiterCertificat = (idCertificat, decision) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErreur("Session expiree. Veuillez vous reconnecter.");
+      return;
+    }
+    setTraitement(idCertificat);
+    setErreur("");
+    setSucces("");
+    fetch(API + "/certificats/" + idCertificat + "/valider", {
+      method: "PUT",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ decision: decision })
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "Impossible de traiter le certificat.");
+        return data;
+      })
+      .then((data) => {
+        setSucces(data.message || (decision === "valider" ? "Certificat valide." : "Certificat refuse."));
+        setCertificats((anciens) => anciens.map((item) => {
+          if (item.idCertificat === idCertificat) {
+            return Object.assign({}, item, { statutCertificat: decision === "valider" ? "validee" : "annulee" });
+          }
+          return item;
+        }));
+        setTraitement(null);
+      })
+      .catch((error) => {
+        setErreur(error.message);
+        setTraitement(null);
+      });
+  };
+
+  const certificatsFiltres = certificats.filter((item) => {
+    if (filtre === "tous") return true;
+    return obtenirStatut(item) === filtre;
+  });
+
+  const nbEnAttente = certificats.filter((i) => obtenirStatut(i) === "en_attente").length;
+  const nbValides = certificats.filter((i) => obtenirStatut(i) === "validee").length;
+  const nbRefuses = certificats.filter((i) => obtenirStatut(i) === "annulee").length;
+
+  if (chargement) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.loadingContainer}>
+          <div className={styles.spinner}></div>
+          <h3>Chargement des demandes</h3>
+          <p>Nous recuperons les demandes de certificats...</p>
+        </div>
+      </main>
     );
-    if (!confirmation) return;
-    setActionEnCours(certificat.idCertificat);
-    setMessage("");
-    setErreur("");
-    try {
-      const token = obtenirToken();
-      if (!token) throw new Error("Session expirée. Veuillez vous reconnecter.");
-      const response = await fetch(
-        `${API}/certificats/${certificat.idCertificat}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ statutCertificat: statut }),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "La modification a échoué.");
-      }
-      setMessage(
-        statut === "validee"
-          ? "Le certificat a été validé."
-          : "Le certificat a été annulé."
-      );
-      await chargerCertificats();
-    } catch (error) {
-      setErreur(error.message || "Impossible de modifier le certificat.");
-    } finally {
-      setActionEnCours(null);
-    }
-  }
-
-  function libelleStatut(statut) {
-    if (statut === "validee") return "Validé";
-    if (statut === "en_attente") return "En attente";
-    if (statut === "annulee") return "Annulé";
-    return statut || "Inconnu";
   }
 
   return (
     <main className={styles.page}>
       <nav className={styles.topNav}>
-        <Link href="/dashboard/formateur" className={styles.brand}>
-          <span className={styles.brandLogo}>L</span>
-          <span>
-            Learning Pro <small>Espace formateur</small>
-          </span>
+        <Link href="/dashboard/formateur" className={styles.logo}>
+          <span className={styles.logoIcon}>L</span>
+          LearningPro
         </Link>
-        <div className={styles.topNavLinks}>
-          <Link
-            href="/dashboard/formateur/certificats"
-            className={`${styles.topNavLink} ${styles.topNavActive}`}
-          >
-            <Award size={18} /> Certificats
-          </Link>
-          <Link href="/dashboard/formateur" className={styles.topNavDashboard}>
-            <ArrowLeft size={18} /> Tableau de bord
-          </Link>
+        <div className={styles.navLinks}>
+          <Link href="/dashboard/formateur">Tableau de bord</Link>
+          <Link href="/dashboard/formateur/formations">Formations</Link>
+          <Link href="/dashboard/formateur/certificats" className={styles.navActive}>Certificats</Link>
+          <Link href="/dashboard/formateur/profil">Profil</Link>
         </div>
+        <button type="button" className={styles.navBack} onClick={() => router.push("/dashboard/formateur")}>Retour</button>
       </nav>
-
       <div className={styles.container}>
         <header className={styles.header}>
-          <div className={styles.headerText}>
-            <div className={styles.surtitre}>
-              <span className={styles.surtitrePoint} />
-              ESPACE FORMATEUR • CERTIFICATS
-            </div>
-            <h1>Certifications</h1>
-            <p>
-              Consultez et gérez les certificats des apprenants de vos
-              formations.
-            </p>
+          <div className={styles.headerContent}>
+            <span className={styles.eyebrow}>LEARNING PRO / ESPACE FORMATEUR</span>
+            <h1>Demandes de <span>certificats</span></h1>
+            <p>Validez ou refusez les demandes de vos apprenants. Vous seul decidez.</p>
           </div>
-          <div className={styles.headerActions}>
-            <Link href="/dashboard/formateur" className={styles.dashboardButton}>
-              <LayoutDashboard size={17} />
-              <span>Tableau de bord</span>
-            </Link>
-            <button
-              type="button"
-              className={styles.refreshButton}
-              onClick={actualiser}
-              disabled={chargement}
-            >
-              <RefreshCw size={17} />
-              <span>Actualiser</span>
-            </button>
-          </div>
+          <button type="button" className={styles.refreshButton} onClick={recharger}>Actualiser</button>
         </header>
-
-        <section className={styles.stats}>
-          <article className={styles.statCard}>
-            <div className={`${styles.statIcon} ${styles.blue}`}>
-              <Award size={22} />
-            </div>
-            <div className={styles.statInfo}>
-              <span>Total certificats</span>
-              <strong>{statistiques.total}</strong>
-            </div>
-          </article>
-          <article className={styles.statCard}>
-            <div className={`${styles.statIcon} ${styles.green}`}>
-              <Check size={22} />
-            </div>
-            <div className={styles.statInfo}>
-              <span>Certificats validés</span>
-              <strong>{statistiques.valides}</strong>
-            </div>
-          </article>
-          <article className={styles.statCard}>
-            <div className={`${styles.statIcon} ${styles.orange}`}>
-              <Clock size={22} />
-            </div>
-            <div className={styles.statInfo}>
-              <span>En attente</span>
-              <strong>{statistiques.attente}</strong>
-            </div>
-          </article>
-          <article className={styles.statCard}>
-            <div className={`${styles.statIcon} ${styles.red}`}>
-              <XCircle size={22} />
-            </div>
-            <div className={styles.statInfo}>
-              <span>Certificats annulés</span>
-              <strong>{statistiques.annules}</strong>
-            </div>
-          </article>
+        {erreur && (<div className={styles.error}><span>!</span>{erreur}</div>)}
+        {succes && (<div className={styles.success}><span>OK</span>{succes}</div>)}
+        <section className={styles.summary}>
+          <div className={styles.summaryStat}><span>En attente</span><strong>{nbEnAttente}</strong></div>
+          <div className={styles.summaryStat}><span>Valides</span><strong>{nbValides}</strong></div>
+          <div className={styles.summaryStat}><span>Refuses</span><strong>{nbRefuses}</strong></div>
         </section>
-
-        {message && (
-          <div className={styles.successMessage}>
-            <Check size={18} />
-            <span>{message}</span>
+        <div className={styles.filters}>
+          <button type="button" className={filtre === "tous" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("tous")}>Tous ({certificats.length})</button>
+          <button type="button" className={filtre === "en_attente" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("en_attente")}>En attente ({nbEnAttente})</button>
+          <button type="button" className={filtre === "validee" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("validee")}>Valides ({nbValides})</button>
+          <button type="button" className={filtre === "annulee" ? styles.filterActive : styles.filterButton} onClick={() => setFiltre("annulee")}>Refuses ({nbRefuses})</button>
+        </div>
+        {certificatsFiltres.length === 0 ? (
+          <div className={styles.empty}>
+            <h3>Aucune demande pour ce filtre</h3>
+            <p>Aucun apprenant n a encore demande de certificat ici.</p>
+          </div>
+        ) : (
+          <div className={styles.certificateGrid}>
+            {certificatsFiltres.map((item, index) => {
+              const titre = obtenirTitre(item);
+              const nomApprenant = obtenirNomComplet(item.apprenant || item.Apprenant || item.utilisateur);
+              const statut = obtenirStatut(item);
+              const enCours = traitement === item.idCertificat;
+              return (
+                <article className={styles.certificateCard} key={item.idCertificat || index}>
+                  <div className={styles.certificateInfo}>
+                    <div className={styles.cardHeader}>
+                      <div>
+                        <span className={styles.label}>CERTIFICATION</span>
+                        <h3>{titre}</h3>
+                      </div>
+                      <span className={styles.verifiedBadge}>{obtenirLibelleStatut(statut)}</span>
+                    </div>
+                    <div className={styles.infoGrid}>
+                      <div className={styles.infoItem}><span className={styles.label}>APPRENANT</span><strong>{nomApprenant}</strong></div>
+                      <div className={styles.infoItem}><span className={styles.label}>DATE</span><strong>{formaterDate(item.dateObtention)}</strong></div>
+                      <div className={styles.infoItem}><span className={styles.label}>REFERENCE</span><strong>{item.numeroCertificat || item.idCertificat || "Non disponible"}</strong></div>
+                    </div>
+                    {statut === "en_attente" ? (
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button type="button" className={styles.downloadButton} disabled={enCours} onClick={() => traiterCertificat(item.idCertificat, "valider")}>{enCours ? "Traitement..." : "Valider"}</button>
+                        <button type="button" className={styles.downloadButton} style={{ background: "#fff", color: "#dc2626", border: "1px solid #fecaca" }} disabled={enCours} onClick={() => traiterCertificat(item.idCertificat, "refuser")}>Refuser</button>
+                      </div>
+                    ) : (
+                      <p className={styles.downloadHint}>{statut === "validee" ? "Ce certificat est valide. L apprenant peut le telecharger." : "Ce certificat a ete refuse. L apprenant ne voit aucun certificat, seulement Reprendre le quiz."}</p>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
-
-        {erreur && (
-          <div className={styles.errorMessage}>
-            <span className={styles.errorIcon}>!</span>
-            <span>{erreur}</span>
-          </div>
-        )}
-
-        <section className={styles.content}>
-          <div className={styles.contentHeader}>
-            <div>
-              <h2>Liste des certificats</h2>
-              <p>Retrouvez les certificats et gérez leur validation.</p>
-            </div>
-            <span className={styles.resultCount}>
-              {certificatsFiltres.length} résultat(s)
-            </span>
-          </div>
-
-          <div className={styles.filters}>
-            <div className={styles.searchBox}>
-              <Search size={19} />
-              <input
-                type="search"
-                placeholder="Rechercher un apprenant, une formation..."
-                value={recherche}
-                onChange={(event) => setRecherche(event.target.value)}
-              />
-              {recherche && (
-                <button
-                  type="button"
-                  className={styles.clearSearch}
-                  onClick={() => setRecherche("")}
-                  aria-label="Effacer la recherche"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-            <div className={styles.selectBox}>
-              <Filter size={18} />
-              <select
-                value={filtreStatut}
-                onChange={(event) => setFiltreStatut(event.target.value)}
-              >
-                <option value="tous">Tous les statuts</option>
-                <option value="validee">Validés</option>
-                <option value="en_attente">En attente</option>
-                <option value="annulee">Annulés</option>
-              </select>
-            </div>
-          </div>
-
-          {chargement ? (
-            <div className={styles.state}>
-              <div className={styles.loader} />
-              <p>Chargement des certificats...</p>
-            </div>
-          ) : certificatsFiltres.length === 0 ? (
-            <div className={styles.empty}>
-              <div className={styles.emptyIcon}>
-                <FileText size={30} />
-              </div>
-              <h3>Aucun certificat trouvé</h3>
-              <p>
-                {recherche || filtreStatut !== "tous"
-                  ? "Essayez de modifier votre recherche ou votre filtre."
-                  : "Les certificats des apprenants apparaîtront ici."}
-              </p>
-              {recherche || filtreStatut !== "tous" ? (
-                <button
-                  type="button"
-                  className={styles.resetButton}
-                  onClick={() => {
-                    setRecherche("");
-                    setFiltreStatut("tous");
-                  }}
-                >
-                  Réinitialiser les filtres
-                </button>
-              ) : (
-                <Link href="/dashboard/formateur" className={styles.resetButton}>
-                  Retour au tableau de bord
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className={styles.tableWrapper}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>N° CERTIFICAT</th>
-                    <th>APPRENANT</th>
-                    <th>FORMATION</th>
-                    <th>DATE D&apos;OBTENTION</th>
-                    <th>STATUT</th>
-                    <th>ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {certificatsFiltres.map((certificat) => (
-                    <tr key={certificat.idCertificat}>
-                      <td>
-                        <span className={styles.numero}>
-                          {certificat.numeroCertificat || "—"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className={styles.person}>
-                          <div className={styles.avatar}>
-                            {nomComplet(certificat.apprenant)
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
-                          <div className={styles.personInfo}>
-                            <span className={styles.personName}>
-                              {nomComplet(certificat.apprenant)}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={styles.formationName}>
-                          {certificat.formation?.titre || "Formation inconnue"}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={styles.date}>
-                          {formaterDate(certificat.dateObtention)}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`${styles.status} ${
-                            certificat.statutCertificat === "validee"
-                              ? styles.statusValid
-                              : certificat.statutCertificat === "en_attente"
-                                ? styles.statusPending
-                                : styles.statusCancelled
-                          }`}
-                        >
-                          <span className={styles.statusDot} />
-                          {libelleStatut(certificat.statutCertificat)}
-                        </span>
-                      </td>
-                      <td>
-                        <div className={styles.actions}>
-                          {certificat.statutCertificat !== "validee" && (
-                            <button
-                              type="button"
-                              className={styles.validateButton}
-                              disabled={
-                                actionEnCours === certificat.idCertificat
-                              }
-                              onClick={() =>
-                                modifierStatut(certificat, "validee")
-                              }
-                            >
-                              <Check size={15} />
-                              <span>
-                                {actionEnCours === certificat.idCertificat
-                                  ? "..."
-                                  : "Valider"}
-                              </span>
-                            </button>
-                          )}
-                          {certificat.statutCertificat !== "annulee" && (
-                            <button
-                              type="button"
-                              className={styles.cancelButton}
-                              disabled={
-                                actionEnCours === certificat.idCertificat
-                              }
-                              onClick={() =>
-                                modifierStatut(certificat, "annulee")
-                              }
-                            >
-                              <XCircle size={15} />
-                              <span>Annuler</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <footer className={styles.footer}>
-          <FileText size={16} />
-          <span>
-            La validation du certificat autorise l&apos;accès au
-            téléchargement selon les règles du serveur.
-          </span>
-        </footer>
       </div>
     </main>
   );

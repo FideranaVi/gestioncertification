@@ -73,14 +73,11 @@ export default function CertificatsPage() {
     );
   };
 
-  // ✅ CORRIGÉ : NOM avant Prénom, comme le formateur
-  // Ex : LÉONIE Marie, pas Marie LÉONIE
-  // On met le NOM en majuscules pour bien voir la différence
+  // ✅ NOM avant Prénom : LÉONIE Marie
   const obtenirNomComplet = (utilisateur) => {
     if (!utilisateur) return "Non renseigné";
     const nom = (utilisateur.nom || "").trim().toUpperCase();
     const prenom = (utilisateur.prenom || "").trim();
-    // On capitalise le prénom : marie -> Marie
     const prenomPropre = prenom
       ? prenom.charAt(0).toUpperCase() + prenom.slice(1).toLowerCase()
       : "";
@@ -113,7 +110,7 @@ export default function CertificatsPage() {
       setSucces("");
       setErreur(
         statut === "annulee"
-          ? "Cette demande de certificat a été refusée par le formateur. Vous pouvez repasser le quiz."
+          ? "Cette demande a été refusée. Aucun certificat n'a été délivré."
           : "Votre certificat doit d'abord être validé par le formateur."
       );
       return;
@@ -174,6 +171,17 @@ export default function CertificatsPage() {
     router.push("/dashboard/apprenant");
   };
 
+  // ✅ VRAIE LOGIQUE PRO
+  // Certificats affichés = Validés + En attente UNIQUEMENT
+  // Refusés = JAMAIS affichés comme certificats, ils vont dans une petite liste à part
+  const certificatsAffiches = certificats.filter(
+    (item) => obtenirStatut(item) !== "annulee"
+  );
+
+  const demandesRefusees = certificats.filter(
+    (item) => obtenirStatut(item) === "annulee"
+  );
+
   const certificatsValides = certificats.filter(
     (item) => obtenirStatut(item) === "validee"
   );
@@ -192,7 +200,7 @@ export default function CertificatsPage() {
 
   return (
     <main className={styles.page}>
-      {/* ✅ NAVIGATION - comme SoloLearn, en haut */}
+      {/* NAVIGATION HAUTE - SoloLearn */}
       <nav className={styles.topNav}>
         <Link href="/dashboard/apprenant" className={styles.logo}>
           <span className={styles.logoIcon}>L</span>
@@ -268,14 +276,14 @@ export default function CertificatsPage() {
             <div>
               <span className={styles.sectionEyebrow}>VOS ACCOMPLISSEMENTS</span>
               <h2>Mes réussites</h2>
-              <p>Retrouvez ici toutes vos demandes de certifications.</p>
+              <p>Retrouvez ici vos certificats validés et en attente.</p>
             </div>
             <div className={styles.countBadge}>
-              {certificats.length} demande(s)
+              {certificatsAffiches.length} certificat(s)
             </div>
           </div>
 
-          {certificats.length === 0 ? (
+          {certificatsAffiches.length === 0 && demandesRefusees.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}><span>✧</span></div>
               <h3>Votre première certification vous attend !</h3>
@@ -293,121 +301,158 @@ export default function CertificatsPage() {
               </button>
             </div>
           ) : (
-            <div className={styles.certificateGrid}>
-              {certificats.map((item, index) => {
-                const titre = obtenirTitre(item);
-                const nomApprenant = obtenirNomComplet(
-                  item.apprenant || item.Apprenant || item.utilisateur
-                );
-                const nomFormateur = obtenirNomComplet(
-                  item.formateur || item.Formateur
-                );
-                const statut = obtenirStatut(item);
-                const enTelechargement = telechargement === item.idCertificat;
-                const peutTelecharger = statut === "validee";
-                const estRefuse = statut === "annulee";
+            <>
+              {/* ===== CERTIFICATS : Validés + En attente SEULEMENT ===== */}
+              {certificatsAffiches.length > 0 && (
+                <div className={styles.certificateGrid}>
+                  {certificatsAffiches.map((item, index) => {
+                    const titre = obtenirTitre(item);
+                    const nomApprenant = obtenirNomComplet(
+                      item.apprenant || item.Apprenant || item.utilisateur
+                    );
+                    const nomFormateur = obtenirNomComplet(
+                      item.formateur || item.Formateur
+                    );
+                    const statut = obtenirStatut(item);
+                    const enTelechargement = telechargement === item.idCertificat;
+                    const peutTelecharger = statut === "validee";
 
-                return (
-                  <article
-                    className={styles.certificateCard}
-                    key={item.idCertificat || index}
-                  >
-                    <div className={styles.certificatePreview}>
-                      <div className={styles.certificateBorder}>
-                        <div className={styles.previewContent}>
-                          <span className={styles.previewEyebrow}>
-                            {estRefuse ? "REFUSÉ" : peutTelecharger ? "CERTIFICAT" : "EN ATTENTE"}
-                          </span>
-                          <h3>{estRefuse ? "✕" : peutTelecharger ? "✓" : "⏳"}</h3>
-                          <h4>{titre}</h4>
-                          <div className={styles.goldLine}></div>
-                          <span className={styles.previewName}>{nomApprenant}</span>
+                    return (
+                      <article
+                        className={styles.certificateCard}
+                        key={item.idCertificat || index}
+                      >
+                        <div className={styles.certificatePreview}>
+                          <div className={styles.certificateBorder}>
+                            <div className={styles.previewContent}>
+                              <span className={styles.previewEyebrow}>
+                                {peutTelecharger ? "CERTIFICAT" : "EN ATTENTE"}
+                              </span>
+                              <h3>{peutTelecharger ? "✓" : "⏳"}</h3>
+                              <h4>{titre}</h4>
+                              <div className={styles.goldLine}></div>
+                              <span className={styles.previewName}>{nomApprenant}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className={styles.certificateInfo}>
-                      <div className={styles.cardHeader}>
+                        <div className={styles.certificateInfo}>
+                          <div className={styles.cardHeader}>
+                            <div>
+                              <span className={styles.label}>CERTIFICATION</span>
+                              <h3>{titre}</h3>
+                            </div>
+                            {peutTelecharger ? (
+                              <span className={styles.verifiedBadge}>✓ Validé</span>
+                            ) : (
+                              <span className={styles.verifiedBadge}>⏳ En attente</span>
+                            )}
+                          </div>
+
+                          <div className={styles.infoGrid}>
+                            <div className={styles.infoItem}>
+                              <span className={styles.label}>APPRENANT</span>
+                              <strong>{nomApprenant}</strong>
+                            </div>
+                            <div className={styles.infoItem}>
+                              <span className={styles.label}>FORMATEUR</span>
+                              <strong>{nomFormateur}</strong>
+                            </div>
+                            <div className={styles.infoItem}>
+                              <span className={styles.label}>DATE</span>
+                              <strong>{formaterDate(item.dateObtention)}</strong>
+                            </div>
+                            <div className={styles.infoItem}>
+                              <span className={styles.label}>RÉFÉRENCE</span>
+                              <strong>
+                                {item.numeroCertificat || item.idCertificat || "Non disponible"}
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className={styles.statusInfo}>
+                            Statut : {obtenirLibelleStatut(statut)}
+                          </div>
+
+                          <button
+                            type="button"
+                            className={styles.downloadButton}
+                            onClick={() => telechargerCertificat(item.idCertificat, statut)}
+                            disabled={enTelechargement || !peutTelecharger}
+                          >
+                            {enTelechargement ? (
+                              <>
+                                <span className={styles.buttonSpinner}></span>
+                                Préparation du PDF...
+                              </>
+                            ) : peutTelecharger ? (
+                              <>↓ Télécharger mon certificat PDF</>
+                            ) : (
+                              <>⏳ En attente de validation du formateur</>
+                            )}
+                          </button>
+
+                          <p className={styles.downloadHint}>
+                            {peutTelecharger ? (
+                              <>✓ Document PDF téléchargeable</>
+                            ) : (
+                              <>⏳ Le téléchargement sera disponible après validation par votre formateur</>
+                            )}
+                          </p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ===== REFUSÉS : petite ligne, PAS de certificat ===== */}
+              {demandesRefusees.length > 0 && (
+                <div style={{ marginTop: 18 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>
+                    Demandes refusées
+                  </h3>
+                  <p style={{ fontSize: 12.5, color: "#64748b", margin: "0 0 10px" }}>
+                    Ces demandes n&apos;ont pas donné lieu à un certificat. Vous pouvez repasser le quiz.
+                  </p>
+                  {demandesRefusees.map((item, index) => {
+                    const titre = obtenirTitre(item);
+                    const nomFormateur = obtenirNomComplet(item.formateur || item.Formateur);
+                    return (
+                      <div
+                        key={item.idCertificat || index}
+                        style={{
+                          background: "#fff",
+                          border: "1px solid #fecaca",
+                          borderRadius: 10,
+                          padding: "12px 14px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 12,
+                          marginBottom: 8,
+                        }}
+                      >
                         <div>
-                          <span className={styles.label}>CERTIFICATION</span>
-                          <h3>{titre}</h3>
+                          <strong style={{ fontSize: 13.5 }}>{titre}</strong>
+                          <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>
+                            Refusé par {nomFormateur} — Aucun certificat délivré
+                          </p>
                         </div>
-                        {statut === "validee" ? (
-                          <span className={styles.verifiedBadge}>✓ Validé</span>
-                        ) : statut === "annulee" ? (
-                          <span className={styles.verifiedBadge}>✕ Refusé</span>
-                        ) : (
-                          <span className={styles.verifiedBadge}>⏳ En attente</span>
-                        )}
-                      </div>
-
-                      <div className={styles.infoGrid}>
-                        <div className={styles.infoItem}>
-                          <span className={styles.label}>APPRENANT</span>
-                          <strong>{nomApprenant}</strong>
-                        </div>
-                        <div className={styles.infoItem}>
-                          <span className={styles.label}>FORMATEUR</span>
-                          <strong>{nomFormateur}</strong>
-                        </div>
-                        <div className={styles.infoItem}>
-                          <span className={styles.label}>DATE</span>
-                          <strong>{formaterDate(item.dateObtention)}</strong>
-                        </div>
-                        <div className={styles.infoItem}>
-                          <span className={styles.label}>RÉFÉRENCE</span>
-                          <strong>
-                            {item.numeroCertificat || item.idCertificat || "Non disponible"}
-                          </strong>
-                        </div>
-                      </div>
-
-                      <div className={styles.statusInfo}>
-                        Statut : {obtenirLibelleStatut(statut)}
-                      </div>
-
-                      {estRefuse ? (
                         <button
                           type="button"
                           className={styles.downloadButton}
+                          style={{ width: "auto", padding: "8px 14px", whiteSpace: "nowrap" }}
                           onClick={() => reprendreQuiz(item)}
                         >
                           ↻ Reprendre le quiz
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className={styles.downloadButton}
-                          onClick={() => telechargerCertificat(item.idCertificat, statut)}
-                          disabled={enTelechargement || !peutTelecharger}
-                        >
-                          {enTelechargement ? (
-                            <>
-                              <span className={styles.buttonSpinner}></span>
-                              Préparation du PDF...
-                            </>
-                          ) : peutTelecharger ? (
-                            <>↓ Télécharger mon certificat PDF</>
-                          ) : (
-                            <>⏳ En attente de validation du formateur</>
-                          )}
-                        </button>
-                      )}
-
-                      <p className={styles.downloadHint}>
-                        {peutTelecharger ? (
-                          <>✓ Document PDF téléchargeable</>
-                        ) : estRefuse ? (
-                          <>✕ Demande refusée. Vous pouvez repasser le quiz pour obtenir un nouveau certificat.</>
-                        ) : (
-                          <>⏳ Le téléchargement sera disponible après validation par votre formateur</>
-                        )}
-                      </p>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </section>
 
