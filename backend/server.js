@@ -25,6 +25,7 @@ const routes = [
   ["authRoutes", "./routes/authRoutes", "/api/auth"],
   ["apprenantRoutes", "./routes/apprenantRoutes", "/api/apprenant"],
   ["utilisateurRoutes", "./routes/utilisateurRoutes", "/api/utilisateur"],
+  ["adminRoutes", "./routes/utilisateurRoutes", "/api/admin"],
   ["moduleRoutes", "./routes/moduleRoutes", "/api/formateur/modules"],
   ["formateurRoutes", "./routes/formateurRoutes", "/api/formateur"],
   ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"],
