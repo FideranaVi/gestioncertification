@@ -1,20 +1,21 @@
+const BASE = (process.env.NEXT_PUBLIC_API_URL || "https://gestioncertification-backend.onrender.com").replace(/\/$/, "");
+
 export function obtenirApi() {
-  const base = process.env.NEXT_PUBLIC_API_URL || "https://gestioncertification-backend.onrender.com/api";
-  return String(base).replace(/\/$/, "");
-}
-
-export function obtenirApiAuth() {
-  return `${obtenirApi()}/auth`;
-}
-
-export function obtenirApiFormateur() {
-  return `${obtenirApi()}/formateur`;
-}
-
-export function obtenirApiApprenant() {
-  return `${obtenirApi()}/apprenant`;
+  return `${BASE}/api`;
 }
 
 export function obtenirApiAdmin() {
-  return `${obtenirApi()}/admin`;
+  // OBLIGATOIRE : /api/admin, pas /api/utilisateurs, pas /api/utilisateur
+  // C'est ça qui faisait le 403 avant
+  return `${BASE}/api/admin`;
 }
+
+export function obtenirApiFormateur() {
+  return `${BASE}/api/formateur`;
+}
+
+export function obtenirApiApprenant() {
+  return `${BASE}/api/apprenant`;
+}
+
+export default obtenirApi;
