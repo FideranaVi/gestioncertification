@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -14,7 +13,7 @@ const features = [
     number: "01"
   },
   {
-    icon: "✍️",
+    icon: "✍",
     title: "Évaluations interactives",
     description:
       "Testez vos connaissances avec des quiz et suivez vos résultats après chaque évaluation.",
@@ -77,18 +76,19 @@ export default function Home() {
   const [activeFaq, setActiveFaq] = useState(0);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-white text-slate-800">
-      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
-          <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-2xl text-white shadow-lg shadow-emerald-200 transition group-hover:rotate-6">
+    <main className="min-h-screen overflow-x-hidden bg-white text-slate-800">
+      {/* ===== NAV - TELEPHONE ===== */}
+      <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4 lg:px-10">
+          <Link href="/" className="group flex min-w-0 items-center gap-2.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-xl text-white shadow-lg shadow-emerald-200 transition group-hover:rotate-6">
               L
             </div>
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
                 Gestion<span className="text-emerald-600">Formation</span>
               </h1>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+              <p className="text- font-semibold uppercase tracking-[0.2em] text-gray-400 sm:text-">
                 Learn · Progress · Succeed
               </p>
             </div>
@@ -120,7 +120,7 @@ export default function Home() {
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="rounded-lg p-2 text-2xl text-slate-800 transition hover:bg-gray-100 md:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-2xl text-slate-800 transition hover:bg-gray-100 md:hidden"
             aria-label="Ouvrir le menu"
           >
             {menuOpen ? "✕" : "☰"}
@@ -128,84 +128,85 @@ export default function Home() {
         </div>
 
         {menuOpen && (
-          <div className="border-t border-gray-100 bg-white px-6 py-5 shadow-xl md:hidden">
-            <div className="flex flex-col gap-4">
-              <a onClick={() => setMenuOpen(false)} href="#accueil" className="font-semibold">Accueil</a>
-              <a onClick={() => setMenuOpen(false)} href="#fonctionnalites" className="font-semibold">Fonctionnalités</a>
-              <a onClick={() => setMenuOpen(false)} href="#comment" className="font-semibold">Comment ça marche</a>
-              <a onClick={() => setMenuOpen(false)} href="#faq" className="font-semibold">FAQ</a>
-              <Link href="/connexion" className="rounded-xl border border-gray-200 py-3 text-center font-bold">Se connecter</Link>
-              <Link href="/inscription" className="rounded-xl bg-emerald-600 py-3 text-center font-bold text-white">Créer un compte</Link>
+          <div className="border-t border-gray-100 bg-white px-4 py-5 shadow-xl md:hidden">
+            <div className="flex flex-col gap-1">
+              <a onClick={() => setMenuOpen(false)} href="#accueil" className="rounded-lg px-3 py-3 font-semibold hover:bg-gray-50">Accueil</a>
+              <a onClick={() => setMenuOpen(false)} href="#fonctionnalites" className="rounded-lg px-3 py-3 font-semibold hover:bg-gray-50">Fonctionnalités</a>
+              <a onClick={() => setMenuOpen(false)} href="#comment" className="rounded-lg px-3 py-3 font-semibold hover:bg-gray-50">Comment ça marche</a>
+              <a onClick={() => setMenuOpen(false)} href="#faq" className="rounded-lg px-3 py-3 font-semibold hover:bg-gray-50">FAQ</a>
+              <Link href="/connexion" className="mt-2 rounded-xl border border-gray-200 py-3.5 text-center font-bold">Se connecter</Link>
+              <Link href="/inscription" className="rounded-xl bg-emerald-600 py-3.5 text-center font-bold text-white">Créer un compte</Link>
             </div>
           </div>
         )}
       </nav>
 
-      <section id="accueil" className="relative bg-[#f5faf7]">
-        <div className="pointer-events-none absolute -right-40 -top-40 h-[550px] w-[550px] rounded-full bg-emerald-100/60 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 -left-40 h-[400px] w-[400px] rounded-full bg-teal-100/50 blur-3xl" />
+      {/* ===== HERO - TELEPHONE ===== */}
+      <section id="accueil" className="relative overflow-hidden bg-[#f5faf7]">
+        <div className="pointer-events-none absolute -right-40 -top-40 h- w- rounded-full bg-emerald-100/60 blur-3xl sm:h- sm:w-" />
+        <div className="pointer-events-none absolute -bottom-40 -left-40 h- w- rounded-full bg-teal-100/50 blur-3xl sm:h- sm:w-" />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-6 py-20 lg:grid-cols-2 lg:px-10 lg:py-28">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:py-28">
           <div className="animate-[fadeInUp_0.8s_ease-out]">
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-4 py-2 shadow-sm">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+            <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-100 bg-white px-3 py-2 shadow-sm sm:mb-7 sm:px-4">
+              <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+              <span className="text- font-bold uppercase tracking-wider text-emerald-700 sm:text-xs">
                 Votre avenir commence ici
               </span>
             </div>
 
-            <h2 className="max-w-2xl text-5xl font-black leading-[1.12] tracking-tight text-slate-900 md:text-6xl lg:text-[68px]">
+            <h2 className="text- font-black leading-[1.12] tracking-tight text-slate-900 sm:text-5xl md:text-6xl lg:text-">
               Apprenez.
               <span className="block text-emerald-600">Progressez.</span>
               <span className="block">Réussissez.</span>
             </h2>
 
-            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">
+            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:mt-7 sm:text-lg sm:leading-8">
               Développez vos compétences grâce à une plateforme de formation
               en ligne conçue pour apprendre efficacement, évaluer vos acquis
               et valoriser vos connaissances.
             </p>
 
-            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-              <Link href="/inscription" className="group flex items-center justify-center gap-3 rounded-xl bg-emerald-600 px-8 py-4 font-bold text-white shadow-xl shadow-emerald-200 transition duration-300 hover:-translate-y-1 hover:bg-emerald-700 hover:shadow-2xl">
+            <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row sm:gap-4">
+              <Link href="/inscription" className="group flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-600 px-6 py-4 font-bold text-white shadow-xl shadow-emerald-200 transition duration-300 hover:-translate-y-1 hover:bg-emerald-700 hover:shadow-2xl sm:w-auto sm:px-8">
                 Commencer gratuitement
                 <span className="transition group-hover:translate-x-2">→</span>
               </Link>
-              <Link href="/connexion" className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-8 py-4 font-bold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50">
+              <Link href="/connexion" className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-4 font-bold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 sm:w-auto sm:px-8">
                 Se connecter <span>↗</span>
               </Link>
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-6 text-sm font-medium text-slate-500">
+            <div className="mt-7 flex flex-col gap-2 text-sm font-medium text-slate-500 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
               <span className="flex items-center gap-2">✓ Apprentissage flexible</span>
               <span className="flex items-center gap-2">✓ Suivi de progression</span>
               <span className="flex items-center gap-2">✓ Certifications</span>
             </div>
           </div>
 
+          {/* ===== CARTE APERÇU - SANS DEBORDEMENT ===== */}
           <div className="relative mx-auto w-full max-w-xl animate-[fadeInUp_1s_ease-out]">
-            <div className="absolute -right-5 -top-8 h-40 w-40 rounded-full bg-emerald-200/60 blur-3xl" />
-            <div className="relative rotate-1 rounded-[30px] border border-white bg-white p-4 shadow-2xl shadow-emerald-900/10 transition duration-500 hover:rotate-0">
-              <div className="flex items-center justify-between border-b border-gray-100 px-3 pb-5 pt-2">
-                <div>
-                  <p className="text-xs font-semibold text-gray-400">ESPACE APPRENANT</p>
-                  <h3 className="mt-1 text-xl font-extrabold text-slate-900">Mon apprentissage</h3>
+            <div className="relative rounded- border border-white bg-white p-3 shadow-2xl shadow-emerald-900/10 sm:rotate-1 sm:rounded- sm:p-4 sm:transition sm:duration-500 sm:hover:rotate-0">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-2 pb-4 pt-1 sm:px-3 sm:pb-5 sm:pt-2">
+                <div className="min-w-0">
+                  <p className="text- font-semibold text-gray-400 sm:text-xs">ESPACE APPRENANT</p>
+                  <h3 className="mt-1 truncate text-lg font-extrabold text-slate-900 sm:text-xl">Mon apprentissage</h3>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-xl">🎓</div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg sm:h-11 sm:w-11 sm:text-xl">🎓</div>
               </div>
 
-              <div className="mt-5 rounded-2xl bg-emerald-600 p-6 text-white">
-                <p className="text-sm font-medium text-emerald-100">Continuez votre parcours</p>
-                <h3 className="mt-2 text-2xl font-extrabold">Chaque leçon compte !</h3>
-                <p className="mt-2 text-sm text-emerald-100">Apprenez une nouvelle compétence aujourd&apos;hui.</p>
-                <div className="mt-6 flex items-center justify-between">
+              <div className="mt-4 rounded-2xl bg-emerald-600 p-4 text-white sm:mt-5 sm:p-6">
+                <p className="text-xs font-medium text-emerald-100 sm:text-sm">Continuez votre parcours</p>
+                <h3 className="mt-2 text-xl font-extrabold sm:text-2xl">Chaque leçon compte !</h3>
+                <p className="mt-2 text-xs text-emerald-100 sm:text-sm">Apprenez une nouvelle compétence aujourd&apos;hui.</p>
+                <div className="mt-4 flex items-center justify-between gap-3 sm:mt-6">
                   <span className="text-xs font-semibold">Votre prochain objectif</span>
-                  <span className="rounded-lg bg-white/20 px-3 py-1 text-xs font-bold">Continuer →</span>
+                  <span className="shrink-0 rounded-lg bg-white/20 px-3 py-1 text-xs font-bold">Continuer →</span>
                 </div>
               </div>
 
-              <div className="mt-6">
-                <div className="mb-4 flex items-center justify-between">
+              <div className="mt-4 sm:mt-6">
+                <div className="mb-3 flex items-center justify-between sm:mb-4">
                   <h4 className="font-bold text-slate-900">Votre parcours</h4>
                   <span className="text-xs font-semibold text-emerald-600">Exemple</span>
                 </div>
@@ -215,19 +216,20 @@ export default function Home() {
                   { icon: "📊", title: "Évaluation", detail: "Testez vos connaissances" },
                   { icon: "🏆", title: "Certification", detail: "Valorisez vos acquis" }
                 ].map((item, index) => (
-                  <div key={item.title} className="mb-3 flex items-center gap-4 rounded-xl border border-gray-100 p-4 transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-md">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-2xl">{item.icon}</div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-800">{item.title}</h4>
-                      <p className="mt-1 text-xs text-gray-500">{item.detail}</p>
+                  <div key={item.title} className="mb-3 flex items-center gap-3 rounded-xl border border-gray-100 p-3 transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-md sm:gap-4 sm:p-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xl sm:h-12 sm:w-12 sm:text-2xl">{item.icon}</div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate font-bold text-slate-800">{item.title}</h4>
+                      <p className="mt-0.5 text-xs text-gray-500">{item.detail}</p>
                     </div>
-                    <span className="text-lg text-emerald-600">{index === 2 ? "★" : "→"}</span>
+                    <span className="shrink-0 text-lg text-emerald-600">{index === 2 ? "★" : "→"}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="absolute -bottom-8 -left-7 hidden animate-bounce rounded-2xl border border-gray-100 bg-white p-4 shadow-xl sm:block">
+            {/* Badge flottant : caché sur téléphone pour ne pas déborder */}
+            <div className="absolute -bottom-8 -left-7 hidden animate-bounce rounded-2xl border border-gray-100 bg-white p-4 shadow-xl lg:block">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-2xl">🏆</div>
                 <div>
@@ -240,27 +242,28 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="fonctionnalites" className="mx-auto max-w-7xl px-6 py-24 lg:px-10">
-        <div className="mx-auto mb-14 max-w-2xl text-center">
+      {/* ===== FONCTIONNALITES ===== */}
+      <section id="fonctionnalites" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-10 lg:py-24">
+        <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
           <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-600">Une plateforme complète</span>
-          <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-900 md:text-5xl">
+          <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900 sm:mt-4 sm:text-3xl md:text-5xl">
             Tout pour réussir votre apprentissage
           </h2>
-          <p className="mt-5 leading-7 text-slate-500">
+          <p className="mt-4 text-sm leading-7 text-slate-500 sm:text-base">
             Des outils adaptés à chaque étape de votre parcours de formation.
           </p>
         </div>
 
-        <div className="grid gap-7 md:grid-cols-3">
+        <div className="grid gap-4 sm:gap-7 md:grid-cols-3">
           {features.map((item) => (
-            <div key={item.title} className="group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-8 transition duration-300 hover:-translate-y-3 hover:border-emerald-200 hover:shadow-2xl hover:shadow-emerald-900/10">
+            <div key={item.title} className="group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 transition duration-300 hover:-translate-y-3 hover:border-emerald-200 hover:shadow-2xl hover:shadow-emerald-900/10 sm:p-8">
               <span className="absolute right-7 top-5 text-5xl font-black text-gray-50 transition group-hover:text-emerald-50">{item.number}</span>
-              <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl ${item.color} text-3xl transition duration-300 group-hover:rotate-6 group-hover:scale-110`}>
+              <div className={`relative flex h-14 w-14 items-center justify-center rounded-2xl ${item.color} text-2xl transition duration-300 group-hover:rotate-6 group-hover:scale-110 sm:h-16 sm:w-16 sm:text-3xl`}>
                 {item.icon}
               </div>
-              <h3 className="relative mt-7 text-xl font-extrabold text-slate-900">{item.title}</h3>
-              <p className="mt-4 leading-7 text-slate-500">{item.description}</p>
-              <div className="mt-7 flex items-center gap-2 text-sm font-bold text-emerald-600 transition group-hover:gap-4">
+              <h3 className="relative mt-6 text-lg font-extrabold text-slate-900 sm:mt-7 sm:text-xl">{item.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-500 sm:mt-4 sm:text-base">{item.description}</p>
+              <div className="mt-5 flex items-center gap-2 text-sm font-bold text-emerald-600 transition group-hover:gap-4 sm:mt-7">
                 Découvrir <span>→</span>
               </div>
             </div>
@@ -268,64 +271,67 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="comment" className="bg-[#f5faf7] py-24">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <div className="mb-16 text-center">
+      {/* ===== COMMENT ===== */}
+      <section id="comment" className="bg-[#f5faf7] py-14 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+          <div className="mb-10 text-center sm:mb-16">
             <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-600">Simple et efficace</span>
-            <h2 className="mt-4 text-3xl font-black text-slate-900 md:text-5xl">
+            <h2 className="mt-3 text-2xl font-black text-slate-900 sm:mt-4 sm:text-3xl md:text-5xl">
               Votre réussite en trois étapes
             </h2>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-4 sm:gap-8 md:grid-cols-3">
             {steps.map((step, index) => (
-              <div key={step.number} className="relative rounded-3xl bg-white p-8 shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-xl">
+              <div key={step.number} className="relative rounded-3xl bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:shadow-xl sm:p-8">
                 <div className="flex items-center justify-between">
-                  <span className="text-5xl font-black text-emerald-100">{step.number}</span>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-xl text-emerald-600">
+                  <span className="text-4xl font-black text-emerald-100 sm:text-5xl">{step.number}</span>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-lg text-emerald-600 sm:h-12 sm:w-12 sm:text-xl">
                     {index === 0 ? "👤" : index === 1 ? "📖" : "🎓"}
                   </div>
                 </div>
-                <h3 className="mt-7 text-xl font-extrabold text-slate-900">{step.title}</h3>
-                <p className="mt-4 leading-7 text-slate-500">{step.description}</p>
+                <h3 className="mt-6 text-lg font-extrabold text-slate-900 sm:mt-7 sm:text-xl">{step.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-500 sm:mt-4 sm:text-base">{step.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-24">
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[32px] bg-emerald-700 px-8 py-16 text-center shadow-2xl shadow-emerald-900/20 md:px-16">
-          <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full border-[40px] border-white/5" />
-          <div className="absolute -bottom-40 -left-20 h-80 w-80 rounded-full border-[40px] border-white/5" />
+      {/* ===== CTA ===== */}
+      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded- bg-emerald-700 px-5 py-12 text-center shadow-2xl shadow-emerald-900/20 sm:rounded- sm:px-8 sm:py-16 md:px-16">
+          <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full border- border-white/5" />
+          <div className="absolute -bottom-40 -left-20 h-80 w-80 rounded-full border- border-white/5" />
           <div className="relative">
-            <span className="text-4xl">🚀</span>
-            <h2 className="mx-auto mt-6 max-w-3xl text-3xl font-black text-white md:text-5xl">
+            <span className="text-3xl sm:text-4xl">🚀</span>
+            <h2 className="mx-auto mt-5 max-w-3xl text-2xl font-black text-white sm:mt-6 sm:text-3xl md:text-5xl">
               Prêt à développer votre potentiel ?
             </h2>
-            <p className="mx-auto mt-5 max-w-xl leading-7 text-emerald-100">
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-emerald-100 sm:mt-5 sm:text-base">
               Commencez votre parcours dès aujourd&apos;hui et faites de chaque
               apprentissage une nouvelle opportunité.
             </p>
-            <Link href="/inscription" className="mt-9 inline-flex items-center gap-3 rounded-xl bg-white px-8 py-4 font-extrabold text-emerald-700 shadow-lg transition hover:-translate-y-1 hover:bg-emerald-50">
+            <Link href="/inscription" className="mt-7 inline-flex w-full items-center justify-center gap-3 rounded-xl bg-white px-6 py-4 font-extrabold text-emerald-700 shadow-lg transition hover:-translate-y-1 hover:bg-emerald-50 sm:mt-9 sm:w-auto sm:px-8">
               Rejoindre la plateforme <span>→</span>
             </Link>
           </div>
         </div>
       </section>
 
-      <section id="faq" className="mx-auto max-w-4xl px-6 py-20">
-        <div className="mb-12 text-center">
+      {/* ===== FAQ ===== */}
+      <section id="faq" className="mx-auto max-w-4xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mb-8 text-center sm:mb-12">
           <span className="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-600">Besoin d&apos;aide ?</span>
-          <h2 className="mt-4 text-3xl font-black text-slate-900 md:text-4xl">Questions fréquentes</h2>
+          <h2 className="mt-3 text-2xl font-black text-slate-900 sm:mt-4 sm:text-3xl md:text-4xl">Questions fréquentes</h2>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {faqs.map((faq, index) => (
             <div key={faq.question} className="overflow-hidden rounded-2xl border border-gray-100 bg-white transition hover:border-emerald-200">
               <button
                 onClick={() => setActiveFaq(activeFaq === index ? -1 : index)}
-                className="flex w-full items-center justify-between gap-5 p-6 text-left font-bold text-slate-800"
+                className="flex w-full items-center justify-between gap-3 p-4 text-left text- font-bold text-slate-800 sm:gap-5 sm:p-6 sm:text-base"
                 aria-expanded={activeFaq === index}
               >
                 {faq.question}
@@ -333,9 +339,9 @@ export default function Home() {
                   +
                 </span>
               </button>
-              <div className={`grid transition-all duration-300 ${activeFaq === index ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+              <div className={`grid transition-all duration-300 ${activeFaq === index ? "grid-rows- opacity-100" : "grid-rows- opacity-0"}`}>
                 <div className="overflow-hidden">
-                  <p className="px-6 pb-6 leading-7 text-slate-500">{faq.answer}</p>
+                  <p className="px-4 pb-5 text-sm leading-7 text-slate-500 sm:px-6 sm:pb-6 sm:text-base">{faq.answer}</p>
                 </div>
               </div>
             </div>
@@ -343,13 +349,14 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ===== FOOTER ===== */}
       <footer className="bg-[#102c23] text-white">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-16 md:grid-cols-2 lg:grid-cols-4 lg:px-10">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-16 md:grid-cols-2 lg:grid-cols-4 lg:px-10">
           <div className="lg:col-span-2">
-            <h2 className="text-2xl font-black">
+            <h2 className="text-xl font-black sm:text-2xl">
               Gestion<span className="text-emerald-400">Formation</span>
             </h2>
-            <p className="mt-5 max-w-md leading-7 text-gray-400">
+            <p className="mt-4 max-w-md text-sm leading-7 text-gray-400 sm:mt-5">
               Une plateforme dédiée à l&apos;apprentissage, au développement
               des compétences et à la réussite professionnelle.
             </p>
@@ -357,7 +364,7 @@ export default function Home() {
 
           <div>
             <h3 className="font-bold">Navigation</h3>
-            <div className="mt-5 flex flex-col gap-4 text-sm text-gray-400">
+            <div className="mt-4 flex flex-col gap-3 text-sm text-gray-400 sm:mt-5 sm:gap-4">
               <a href="#accueil" className="transition hover:text-emerald-400">Accueil</a>
               <a href="#fonctionnalites" className="transition hover:text-emerald-400">Fonctionnalités</a>
               <a href="#comment" className="transition hover:text-emerald-400">Comment ça marche</a>
@@ -367,14 +374,14 @@ export default function Home() {
 
           <div>
             <h3 className="font-bold">Votre espace</h3>
-            <div className="mt-5 flex flex-col gap-4 text-sm text-gray-400">
+            <div className="mt-4 flex flex-col gap-3 text-sm text-gray-400 sm:mt-5 sm:gap-4">
               <Link href="/connexion" className="transition hover:text-emerald-400">Se connecter</Link>
               <Link href="/inscription" className="transition hover:text-emerald-400">Créer un compte</Link>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-white/10 px-6 py-6 text-center text-xs text-gray-400">
+        <div className="border-t border-white/10 px-4 py-6 text-center text-xs leading-5 text-gray-400">
           © 2026 GestionFormation. Tous droits réservés.
           <span className="mx-2 text-emerald-500">|</span>
           Conçu pour apprendre et réussir.

@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import styles from "./quiz.module.css";
 import { obtenirApiApprenant } from "@/lib/api";
 const API = obtenirApiApprenant();
@@ -72,6 +73,32 @@ function estRefuse(item) {
 function estValide(item) {
   const s = obtenirStatutCertificat(item);
   return s === "validee" || s === "valide" || s === "accepte";
+}
+
+// ===== NAVIGATION BAS - seule nouveauté, aucune logique =====
+function BottomNav({ actif = "quiz" }) {
+  return (
+    <nav className={styles.bottomNav}>
+      <Link href="/dashboard/apprenant" className={actif === "accueil" ? styles.active : ""}>
+        <span>🏠</span><span>Accueil</span>
+      </Link>
+      <Link href="/dashboard/apprenant/formations" className={actif === "formations" ? styles.active : ""}>
+        <span>📚</span><span>Formations</span>
+      </Link>
+      <Link href="/dashboard/apprenant/quiz" className={actif === "quiz" ? styles.active : ""}>
+        <span>📝</span><span>Quiz</span>
+      </Link>
+      <Link href="/dashboard/apprenant/resultats" className={actif === "resultats" ? styles.active : ""}>
+        <span>📊</span><span>Résultats</span>
+      </Link>
+      <Link href="/dashboard/apprenant/certificats" className={actif === "certificats" ? styles.active : ""}>
+        <span>🏆</span><span>Certificats</span>
+      </Link>
+      <Link href="/dashboard/apprenant/profil" className={actif === "profil" ? styles.active : ""}>
+        <span>👤</span><span>Profil</span>
+      </Link>
+    </nav>
+  );
 }
 
 function QuizContent() {
@@ -257,13 +284,27 @@ function QuizContent() {
   const reprendreQuiz = () => { const code = dernierCodeQuiz || codeQuizParam || quiz?.codeQuiz; if (!code) { retournerListe(); return; } quizLanceRef.current = ""; resultatRef.current = false; soumissionRef.current = false; setResultat(null); setQuiz(null); setTentative(null); setReponses({}); setDureeRestante(null); setErreur(""); setMessage(""); setTimeout(() => commencerQuiz(code), 50); };
   const allerDashboard = () => { router.push("/dashboard/apprenant"); };
 
-  if (chargement && !codeQuizParam) return (<main className={styles.page}><div className={styles.loadingState}><span className={styles.loader} /><p>Chargement des quiz...</p></div></main>);
-  if (demarrage && !quiz && !resultat) return (<main className={styles.page}><div className={styles.loadingState}><span className={styles.loader} /><p>Preparation de votre quiz...</p></div></main>);
+  if (chargement && !codeQuizParam) return (
+    <main className={styles.page}>
+      <div className={styles.loadingState}><span className={styles.loader} /><p>Chargement des quiz...</p></div>
+      <BottomNav actif="quiz" />
+    </main>
+  );
+  if (demarrage && !quiz && !resultat) return (
+    <main className={styles.page}>
+      <div className={styles.loadingState}><span className={styles.loader} /><p>Preparation de votre quiz...</p></div>
+      <BottomNav actif="quiz" />
+    </main>
+  );
 
   if (resultat) {
     const reussi = obtenirReussite(); const seuil = obtenirSeuil(); const pointsObtenus = resultat.pointsObtenus; const pointsTotal = resultat.pointsTotal; const certifRefuse = estRefuse(resultat);
     return (
       <main className={styles.page}>
+        <header className={styles.topBar}>
+          <button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button>
+          <span className={styles.topBarLabel}>Résultat</span>
+        </header>
         <section className={styles.resultCard}><div className={styles.resultContent}>
           <div className={`${styles.resultIcon} ${reussi ? styles.resultPassed : styles.resultFailed}`}>{reussi ? "✓" : "!"}</div>
           <h1 className={styles.pageTitle}>{reussi ? "Felicitations !" : "Quiz termine"}</h1>
@@ -279,9 +320,9 @@ function QuizContent() {
             <button className={styles.primaryButton} onClick={reprendreQuiz}>Reprendre le quiz</button>
             {reussi && resultat.certificat && !certifRefuse && (<button className={styles.secondaryButton} onClick={() => router.push("/dashboard/apprenant/certificats")}>Voir mes certificats</button>)}
             <button className={styles.secondaryButton} onClick={retournerListe}>Retour aux quiz</button>
-            <button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button>
           </div>
         </div></section>
+        <BottomNav actif="quiz" />
       </main>
     );
   }
@@ -293,7 +334,6 @@ function QuizContent() {
         <header className={styles.quizHeader}><div className={styles.quizHeaderText}>
           <h1 className={styles.pageTitle}>{quiz.nomQuiz || quiz.titre || "Evaluation"}</h1>
           <p className={styles.subtitle}>{quiz.descriptionQuiz || quiz.description || "Repondez aux questions ci-dessous."}</p>
-          <button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button>
         </div>
         <div className={`${styles.timer} ${urgent ? styles.timerUrgent : ""}`}><span className={styles.timerLabel}>Temps restant</span><span className={styles.timerValue}>{formaterTemps(dureeRestante)}</span></div></header>
         {erreur && <div className={styles.errorNotice}>{erreur}</div>}
@@ -308,13 +348,20 @@ function QuizContent() {
           );
         }))}
         <section className={styles.submitCard}><div className={styles.submitInfo}><strong>{nombreReponses} reponse(s) selectionnee(s)</strong><p>Verifiez vos reponses avant de terminer.</p></div><button className={`${styles.primaryButton} ${soumission ? styles.buttonDisabled : ""}`} disabled={soumission || questions.length === 0} onClick={() => soumettreQuiz(false)}>{soumission ? "Soumission..." : "Terminer le quiz"}</button></section>
+        <BottomNav actif="quiz" />
       </main>
     );
   }
 
   return (
     <main className={styles.page}>
-      <header className={styles.listHeader}><div><h1 className={styles.pageTitle}>Mes quiz</h1><p className={styles.subtitle}>Consultez les evaluations disponibles et testez vos connaissances.</p></div><button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button></header>
+      <header className={styles.topBar}>
+        <div>
+          <h1 className={styles.pageTitle}>Mes quiz</h1>
+          <p className={styles.subtitle}>Consultez les evaluations disponibles et testez vos connaissances.</p>
+        </div>
+        <button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button>
+      </header>
       {erreur && <div className={styles.errorNotice}>{erreur}</div>}
       {demarrage && (<div className={styles.infoNotice}>Preparation de votre quiz...</div>)}
       {!chargement && quizListe.length === 0 && (<section className={styles.emptyState}><div className={styles.emptyIcon}>Q</div><h2>Aucun quiz disponible</h2><p>Les evaluations apparaitront ici lorsque les conditions d&apos;acces seront remplies.</p></section>)}
@@ -335,13 +382,14 @@ function QuizContent() {
           <div className={styles.quizCardActions}><button className={`${styles.primaryButton} ${!accessible ? styles.buttonDisabled : ""} ${dejaReussi ? styles.buttonPassed : ""}`} disabled={!accessible || demarrage} onClick={() => commencerQuiz(codeQuiz)}>{certificatRefuse ? "Reprendre le quiz" : dejaReussi ? "Reprendre le quiz" : demarrage ? "Chargement..." : accessible ? "Commencer le quiz" : "Quiz verrouille"}</button></div></section>
         );
       })}</div>
+      <BottomNav actif="quiz" />
     </main>
   );
 }
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={<main className={styles.page}><div className={styles.loadingState}><span className={styles.loader} /><p>Chargement...</p></div></main>}>
+    <Suspense fallback={<main className={styles.page}><div className={styles.loadingState}><span className={styles.loader} /><p>Chargement...</p></div><BottomNav actif="quiz" /></main>}>
       <QuizContent />
     </Suspense>
   );
