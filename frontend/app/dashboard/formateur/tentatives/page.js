@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./tentatives.module.css";
 import { obtenirApiFormateur } from "@/lib/api";
 const API_FORMATEUR = obtenirApiFormateur();
-const API_TENTATIVES = API_FORMATEUR.replace(/\/formateur$/, "") + "/tentatives";
+const API_TENTATIVES = API_FORMATEUR + "/tentatives";
 const ACTUALISATION_MS = 5000;
 const DELAI_INACTIVITE_MS = 30000;
 function obtenirToken() { if (typeof window === "undefined") return ""; return sessionStorage.getItem("token") || localStorage.getItem("token") || ""; }
@@ -31,7 +31,7 @@ export default function TentativesFormateurPage() {
     if (requeteEnCours.current && !force) return null; if (validationEnCoursRef.current && !force) return null; requeteEnCours.current = true;
     const token = obtenirToken(); if (!token) { requeteEnCours.current = false; router.push("/connexion"); return null; }
     try {
-      const response = await fetch(API_TENTATIVES + "/formateur", { method: "GET", headers: { Authorization: "Bearer " + token, Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch(API_TENTATIVES, { method: "GET", headers: { Authorization: "Bearer " + token, Accept: "application/json" }, cache: "no-store" });
       const donnees = await response.json().catch(() => ({}));
       if (!pageActive.current) return null;
       if (response.status === 401 || response.status === 403) { router.push("/connexion"); return null; }
