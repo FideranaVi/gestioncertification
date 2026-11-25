@@ -31,7 +31,7 @@ const SuiviFormation = sequelize.define("SuiviFormation", {
     allowNull: true
   }
 }, {
-  tableName: "SuiviFormation",
+  tableName: "suiviformation",
   timestamps: false,
   freezeTableName: true
 });

@@ -34,7 +34,7 @@ const SuiviModule = sequelize.define(
     }
   },
   {
-    tableName: "SuiviModule",
+    tableName: "suivimodule",
     timestamps: false,
     freezeTableName: true
   }
