@@ -8,7 +8,6 @@ import styles from "./module.module.css";
 
 import { obtenirApiFormateur } from "@/lib/api";
 const API = obtenirApiFormateur();
-fetch(`${API}/modules`)
 
 function getToken() {
   if (typeof window === "undefined") return "";
@@ -61,10 +60,7 @@ export default function ModulesPage() {
   const [suppression, setSuppression] = useState(null);
   const [erreurSuppression, setErreurSuppression] = useState("");
   const [succesSuppression, setSuccesSuppression] = useState("");
-
-  // ✅ REGROUPEMENT : formations ouvertes par défaut
   const [formationsOuvertes, setFormationsOuvertes] = useState(() => new Set());
-
   const {
     data,
     error,
@@ -75,10 +71,8 @@ export default function ModulesPage() {
     revalidateOnReconnect: true,
     shouldRetryOnError: false,
   });
-
   const modules = data?.modules || [];
   const formations = data?.formations || [];
-
   const modulesFiltres = useMemo(() => {
     const terme = recherche.trim().toLowerCase();
     return modules
@@ -106,22 +100,15 @@ export default function ModulesPage() {
         return Number(a.numFormation) - Number(b.numFormation);
       });
   }, [modules, formations, recherche, formationFiltre]);
-
-  // ✅ REGROUPEMENT : modules regroupés par formation
   const groupesParFormation = useMemo(() => {
     const groupes = new Map();
-
-    // On crée d'abord un groupe pour chaque formation, même sans module
     formations.forEach((formation) => {
-      // Si un filtre formation est actif, on ne garde que celle-là
       if (formationFiltre && String(formation.numFormation) !== String(formationFiltre)) return;
       groupes.set(String(formation.numFormation), {
         formation,
         modules: [],
       });
     });
-
-    // On répartit les modules filtrés dans leur groupe
     modulesFiltres.forEach((module) => {
       const key = String(module.numFormation);
       if (!groupes.has(key)) {
@@ -133,15 +120,11 @@ export default function ModulesPage() {
       }
       groupes.get(key).modules.push(module);
     });
-
-    // Si on cherche un module, on ne garde que les groupes qui ont des modules
     if (recherche.trim()) {
       return [...groupes.values()].filter((g) => g.modules.length > 0);
     }
-
     return [...groupes.values()];
   }, [formations, modulesFiltres, formationFiltre, recherche]);
-
   const obtenirNomFormation = (module) => {
     const formation = formations.find(
       (item) => String(item.numFormation) === String(module.numFormation)
@@ -152,7 +135,6 @@ export default function ModulesPage() {
       `Formation #${module.numFormation}`
     );
   };
-
   const toggleFormation = (numFormation) => {
     setFormationsOuvertes((prev) => {
       const next = new Set(prev);
@@ -162,15 +144,12 @@ export default function ModulesPage() {
       return next;
     });
   };
-
   const toutOuvrir = () => {
     setFormationsOuvertes(new Set(groupesParFormation.map((g) => String(g.formation.numFormation))));
   };
-
   const toutFermer = () => {
     setFormationsOuvertes(new Set());
   };
-
   const supprimerModule = async (codeModule) => {
     if (!codeModule) {
       setErreurSuppression("Identifiant du module introuvable.");
@@ -207,18 +186,12 @@ export default function ModulesPage() {
       setSuppression(null);
     }
   };
-
   const totalFormations = new Set(modules.map((module) => module.numFormation)).size;
-
-  // Une formation est ouverte si elle est dans le Set OU si on cherche / filtre (on ouvre tout)
   const estOuverte = (numFormation) => {
     if (recherche.trim() || formationFiltre) return true;
-    // Par défaut : tout ouvert si jamais cliqué, sinon on suit le Set
-    // Si le Set est vide au début, on considère tout ouvert
     if (formationsOuvertes.size === 0) return true;
     return formationsOuvertes.has(String(numFormation));
   };
-
   return (
     <main className={styles.page}>
       <div className={styles.container}>
@@ -228,7 +201,6 @@ export default function ModulesPage() {
             <h1>Mes modules</h1>
             <p>Modules regroupés par formation. Ouvre une formation pour voir ses modules.</p>
           </div>
-
           <div className={styles.headerActions}>
             <Link href="/dashboard/formateur" className={styles.backButton}>
               <ArrowLeft size={18} /> Tableau de bord
@@ -238,7 +210,6 @@ export default function ModulesPage() {
             </Link>
           </div>
         </header>
-
         <section className={styles.stats}>
           <article className={styles.statCard}>
             <div className={styles.statIcon}><Layers size={22} /></div>
@@ -253,7 +224,6 @@ export default function ModulesPage() {
             <div><span>Modules affichés</span><strong>{modulesFiltres.length}</strong></div>
           </article>
         </section>
-
         <section className={styles.content}>
           <div className={styles.contentHeader}>
             <div>
@@ -262,7 +232,6 @@ export default function ModulesPage() {
             </div>
             <span className={styles.count}>{groupesParFormation.length} formation(s) • {modulesFiltres.length} module(s)</span>
           </div>
-
           <div className={styles.filters}>
             <div className={styles.searchBox}>
               <Search size={18} />
@@ -282,14 +251,11 @@ export default function ModulesPage() {
               ))}
             </select>
           </div>
-
           <div className={styles.groupActions}>
             <button type="button" onClick={toutOuvrir}>Tout ouvrir</button>
             <button type="button" onClick={toutFermer}>Tout fermer</button>
           </div>
-
           {succesSuppression && <div className={styles.success}>{succesSuppression}</div>}
-
           {erreurSuppression && (
             <div className={styles.error}>
               <strong>Erreur de suppression</strong>
@@ -297,7 +263,6 @@ export default function ModulesPage() {
               <button type="button" onClick={() => setErreurSuppression("")}>Fermer</button>
             </div>
           )}
-
           {isLoading ? (
             <div className={styles.state}>
               <div className={styles.spinner}></div>
@@ -330,7 +295,6 @@ export default function ModulesPage() {
                     const ouvert = estOuverte(formation.numFormation);
                     return (
                       <section key={formation.numFormation} className={styles.formationGroup}>
-                        {/* EN-TÊTE FORMATION - cliquable pour ouvrir / fermer */}
                         <button
                           type="button"
                           className={styles.formationGroupHeader}
@@ -351,8 +315,6 @@ export default function ModulesPage() {
                             {ouvert ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                           </span>
                         </button>
-
-                        {/* MODULES DE CETTE FORMATION */}
                         {ouvert && (
                           <>
                             {modulesDuGroupe.length === 0 ? (
@@ -407,7 +369,6 @@ export default function ModulesPage() {
             </>
           )}
         </section>
-
         <footer className={styles.footer}>Learning Pro · Espace formateur</footer>
       </div>
     </main>
