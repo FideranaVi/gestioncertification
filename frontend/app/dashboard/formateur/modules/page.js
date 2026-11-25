@@ -6,7 +6,9 @@ import useSWR from "swr";
 import { BookOpen, Layers, Search, ChevronDown, ChevronRight, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import styles from "./module.module.css";
 
-const API = "http://localhost:5000/api/formateur";
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
+fetch(`${API}/modules`)
 
 function getToken() {
   if (typeof window === "undefined") return "";
