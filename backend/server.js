@@ -27,7 +27,8 @@ const routes = [
   ["utilisateurRoutes", "./routes/utilisateurRoutes", "/api/utilisateur"],
   ["moduleRoutes", "./routes/moduleRoutes", "/api/formateur/modules"],
   ["formateurRoutes", "./routes/formateurRoutes", "/api/formateur"],
-  ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"]
+  ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"],
+  ["tentativeQuizRoutes", "./routes/tentativeQuizRoutes", "/api/tentatives"],
 ];
 
 for (const [name, routePath, url] of routes) {
