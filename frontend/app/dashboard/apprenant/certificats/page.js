@@ -94,24 +94,34 @@ export default function CertificatsPage() {
     ].filter(Boolean).join(" ") || "Non renseigné";
   };
 
-  // ✅ CORRIGÉ : par défaut en_attente, jamais validee
   const obtenirStatut = (item) => {
     return item.statutCertificat || "en_attente";
   };
 
   const obtenirLibelleStatut = (statut) => {
     if (statut === "validee") return "Validé";
-    if (statut === "annulee") return "Annulé";
+    if (statut === "annulee") return "Refusé par le formateur";
     return "En attente de validation";
   };
 
-  // ✅ CORRIGÉ : bloque le téléchargement si pas validé + vérifie que c'est bien un PDF
+  const reprendreQuiz = (item) => {
+    // ✅ VRAIE LOGIQUE : si refusé, l'apprenant doit pouvoir repasser le quiz
+    // On renvoie vers la formation pour repasser le quiz
+    if (item.numFormation) {
+      router.push(`/dashboard/apprenant/formations/${item.numFormation}`);
+    } else if (item.codeQuiz) {
+      router.push(`/dashboard/apprenant/quiz/${item.codeQuiz}`);
+    } else {
+      router.push("/dashboard/apprenant");
+    }
+  };
+
   const telechargerCertificat = async (id, statut) => {
     if (statut && statut !== "validee") {
       setSucces("");
       setErreur(
         statut === "annulee"
-          ? "Cette demande de certificat a été annulée par le formateur."
+          ? "Cette demande de certificat a été refusée par le formateur. Vous pouvez repasser le quiz."
           : "Votre certificat doit d'abord être validé par le formateur."
       );
       return;
@@ -155,7 +165,6 @@ export default function CertificatsPage() {
         throw new Error(message);
       }
 
-      // Si le backend renvoie du JSON au lieu d'un PDF, c'est une erreur
       if (!contentType.includes("application/pdf")) {
         let message = "Impossible de télécharger le certificat.";
 
@@ -194,7 +203,6 @@ export default function CertificatsPage() {
     router.push("/dashboard/apprenant");
   };
 
-  // ✅ Compteurs : seuls les validés comptent comme "obtenus"
   const certificatsValides = certificats.filter(
     (item) => obtenirStatut(item) === "validee"
   );
@@ -214,8 +222,6 @@ export default function CertificatsPage() {
   return (
     <main className={styles.page}>
       <div className={styles.container}>
-
-        {/* HEADER */}
 
         <header className={styles.header}>
           <div className={styles.headerContent}>
@@ -252,8 +258,6 @@ export default function CertificatsPage() {
           </div>
         </header>
 
-        {/* NOTIFICATIONS */}
-
         {erreur && (
           <div className={styles.error}>
             <span>!</span>
@@ -267,8 +271,6 @@ export default function CertificatsPage() {
             {succes}
           </div>
         )}
-
-        {/* STATISTICS */}
 
         <section className={styles.summary}>
           <div className={styles.summaryLeft}>
@@ -295,13 +297,11 @@ export default function CertificatsPage() {
           <div className={styles.summaryStat}>
             <span>Certificats obtenus</span>
             <strong>{certificatsValides.length}</strong>
-            <small>Votre réussite en chiffres</small>
+            <small>Seuls les certificats validés comptent</small>
           </div>
 
           <div className={styles.summaryDecoration}>✧</div>
         </section>
-
-        {/* CERTIFICATES */}
 
         <section className={styles.section}>
 
@@ -314,12 +314,12 @@ export default function CertificatsPage() {
               <h2>Mes réussites</h2>
 
               <p>
-                Retrouvez ici toutes vos certifications LearningPro.
+                Retrouvez ici toutes vos demandes de certifications.
               </p>
             </div>
 
             <div className={styles.countBadge}>
-              {certificats.length} certificat(s)
+              {certificats.length} demande(s)
             </div>
           </div>
 
@@ -364,6 +364,8 @@ export default function CertificatsPage() {
                   telechargement === item.idCertificat;
 
                 const peutTelecharger = statut === "validee";
+                const estRefuse = statut === "annulee";
+                const estEnAttente = statut !== "validee" && statut !== "annulee";
 
                 return (
                   <article
@@ -371,68 +373,100 @@ export default function CertificatsPage() {
                     key={item.idCertificat || index}
                   >
 
-                    {/* CERTIFICATE DESIGN */}
+                    {/* ✅ VRAIE LOGIQUE : le beau certificat doré SEULEMENT si validé */}
+                    {peutTelecharger ? (
+                      <div className={styles.certificatePreview}>
+                        <div className={styles.certificateBorder}>
+                          <div className={styles.previewTop}>
+                            <div className={styles.brand}>
+                              <span className={styles.brandIcon}>✦</span>
+                              <div>
+                                <strong>LEARNING PRO</strong>
+                                <small>ACADEMY</small>
+                              </div>
+                            </div>
+                            <span className={styles.medal}>✦</span>
+                          </div>
 
-                    <div className={styles.certificatePreview}>
+                          <div className={styles.previewContent}>
+                            <span className={styles.previewEyebrow}>
+                              CERTIFICAT OFFICIEL
+                            </span>
+                            <h3>DE RÉUSSITE</h3>
+                            <p>Ce certificat est fièrement décerné à</p>
+                            <strong className={styles.studentName}>
+                              {nomApprenant}
+                            </strong>
+                            <div className={styles.goldLine}></div>
+                            <p>Pour avoir réussi la formation</p>
+                            <h4>{titre}</h4>
+                          </div>
 
-                      <div className={styles.certificateBorder}>
-
-                        <div className={styles.previewTop}>
-                          <div className={styles.brand}>
-                            <span className={styles.brandIcon}>✦</span>
-
+                          <div className={styles.previewBottom}>
+                            <div>
+                              <strong>
+                                {formaterDate(item.dateObtention)}
+                              </strong>
+                              <span>DATE D&apos;OBTENTION</span>
+                            </div>
+                            <div className={styles.seal}>
+                              <span>✓</span>
+                              <small>CERTIFIÉ</small>
+                            </div>
                             <div>
                               <strong>LEARNING PRO</strong>
-                              <small>ACADEMY</small>
+                              <span>ORGANISME</span>
                             </div>
                           </div>
-
-                          <span className={styles.medal}>✦</span>
                         </div>
-
-                        <div className={styles.previewContent}>
-                          <span className={styles.previewEyebrow}>
-                            CERTIFICAT OFFICIEL
-                          </span>
-
-                          <h3>DE RÉUSSITE</h3>
-
-                          <p>Ce certificat est fièrement décerné à</p>
-
-                          <strong className={styles.studentName}>
-                            {nomApprenant}
-                          </strong>
-
-                          <div className={styles.goldLine}></div>
-
-                          <p>Pour avoir réussi la formation</p>
-
-                          <h4>{titre}</h4>
-                        </div>
-
-                        <div className={styles.previewBottom}>
-                          <div>
-                            <strong>
-                              {formaterDate(item.dateObtention)}
-                            </strong>
-                            <span>DATE D&apos;OBTENTION</span>
-                          </div>
-
-                          <div className={styles.seal}>
-                            <span>✓</span>
-                            <small>CERTIFIÉ</small>
-                          </div>
-
-                          <div>
-                            <strong>LEARNING PRO</strong>
-                            <span>ORGANISME</span>
-                          </div>
-                        </div>
-
                       </div>
-                    </div>
+                    ) : (
+                      <div className={styles.certificatePreview} style={{ opacity: 0.85 }}>
+                        <div className={styles.certificateBorder}>
+                          <div className={styles.previewTop}>
+                            <div className={styles.brand}>
+                              <span className={styles.brandIcon}>✦</span>
+                              <div>
+                                <strong>LEARNING PRO</strong>
+                                <small>ACADEMY</small>
+                              </div>
+                            </div>
+                            <span className={styles.medal}>{estRefuse ? "✕" : "⏳"}</span>
+                          </div>
 
-                    {/* CERTIFICATE DETAILS */}
+                          <div className={styles.previewContent}>
+                            <span className={styles.previewEyebrow}>
+                              {estRefuse ? "DEMANDE REFUSÉE" : "EN ATTENTE DE VALIDATION"}
+                            </span>
+                            <h3>{estRefuse ? "NON VALIDÉ" : "EN ATTENTE"}</h3>
+                            <p>{estRefuse ? "Votre demande a été refusée par le formateur." : "Votre demande est en cours de vérification par le formateur."}</p>
+                            <strong className={styles.studentName}>
+                              {nomApprenant}
+                            </strong>
+                            <div className={styles.goldLine}></div>
+                            <p>Formation concernée</p>
+                            <h4>{titre}</h4>
+                          </div>
+
+                          <div className={styles.previewBottom}>
+                            <div>
+                              <strong>
+                                {formaterDate(item.dateObtention)}
+                              </strong>
+                              <span>DATE DE LA DEMANDE</span>
+                            </div>
+                            <div className={styles.seal}>
+                              <span>{estRefuse ? "✕" : "⏳"}</span>
+                              <small>{estRefuse ? "REFUSÉ" : "EN ATTENTE"}</small>
+                            </div>
+                            <div>
+                              <strong>LEARNING PRO</strong>
+                              <span>ORGANISME</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className={styles.certificateInfo}>
 
@@ -441,18 +475,16 @@ export default function CertificatsPage() {
                           <span className={styles.label}>
                             CERTIFICATION
                           </span>
-
                           <h3>{titre}</h3>
                         </div>
 
-                        {/* ✅ Badge selon le VRAI statut */}
                         {statut === "validee" ? (
                           <span className={styles.verifiedBadge}>
                             ✓ Validé
                           </span>
                         ) : statut === "annulee" ? (
                           <span className={styles.verifiedBadge}>
-                            ✕ Annulé
+                            ✕ Refusé
                           </span>
                         ) : (
                           <span className={styles.verifiedBadge}>
@@ -466,7 +498,6 @@ export default function CertificatsPage() {
                           <span className={styles.label}>
                             APPRENANT
                           </span>
-
                           <strong>{nomApprenant}</strong>
                         </div>
 
@@ -474,7 +505,6 @@ export default function CertificatsPage() {
                           <span className={styles.label}>
                             FORMATEUR
                           </span>
-
                           <strong>{nomFormateur}</strong>
                         </div>
 
@@ -482,7 +512,6 @@ export default function CertificatsPage() {
                           <span className={styles.label}>
                             DATE D&apos;OBTENTION
                           </span>
-
                           <strong>
                             {formaterDate(item.dateObtention)}
                           </strong>
@@ -492,7 +521,6 @@ export default function CertificatsPage() {
                           <span className={styles.label}>
                             RÉFÉRENCE
                           </span>
-
                           <strong>
                             {item.numeroCertificat ||
                               item.idCertificat ||
@@ -505,44 +533,55 @@ export default function CertificatsPage() {
                         Statut : {obtenirLibelleStatut(statut)}
                       </div>
 
-                      {/* ✅ Bouton bloqué si pas validé */}
-                      <button
-                        type="button"
-                        className={styles.downloadButton}
-                        onClick={() =>
-                          telechargerCertificat(item.idCertificat, statut)
-                        }
-                        disabled={enTelechargement || !peutTelecharger}
-                        title={
-                          !peutTelecharger
-                            ? statut === "annulee"
-                              ? "Demande annulée par le formateur"
-                              : "En attente de validation par le formateur"
-                            : "Télécharger mon certificat PDF"
-                        }
-                      >
-                        {enTelechargement ? (
-                          <>
-                            <span className={styles.buttonSpinner}></span>
-                            Préparation du PDF...
-                          </>
-                        ) : peutTelecharger ? (
-                          <>
-                            <span>↓</span>
-                            Télécharger mon certificat PDF
-                          </>
-                        ) : statut === "annulee" ? (
-                          <>Demande annulée par le formateur</>
-                        ) : (
-                          <>⏳ En attente de validation du formateur</>
-                        )}
-                      </button>
+                      {/* ✅ BOUTON SELON LE STATUT */}
+                      {estRefuse ? (
+                        <button
+                          type="button"
+                          className={styles.downloadButton}
+                          onClick={() => reprendreQuiz(item)}
+                        >
+                          ↻ Reprendre le quiz
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.downloadButton}
+                          onClick={() =>
+                            telechargerCertificat(item.idCertificat, statut)
+                          }
+                          disabled={enTelechargement || !peutTelecharger}
+                          title={
+                            !peutTelecharger
+                              ? "En attente de validation par le formateur"
+                              : "Télécharger mon certificat PDF"
+                          }
+                        >
+                          {enTelechargement ? (
+                            <>
+                              <span className={styles.buttonSpinner}></span>
+                              Préparation du PDF...
+                            </>
+                          ) : peutTelecharger ? (
+                            <>
+                              <span>↓</span>
+                              Télécharger mon certificat PDF
+                            </>
+                          ) : (
+                            <>⏳ En attente de validation du formateur</>
+                          )}
+                        </button>
+                      )}
 
                       <p className={styles.downloadHint}>
                         {peutTelecharger ? (
                           <>
                             <span>✓</span>
                             Document PDF téléchargeable
+                          </>
+                        ) : estRefuse ? (
+                          <>
+                            <span>✕</span>
+                            Demande refusée. Vous pouvez repasser le quiz pour obtenir un nouveau certificat.
                           </>
                         ) : (
                           <>
@@ -560,12 +599,9 @@ export default function CertificatsPage() {
           )}
         </section>
 
-        {/* BOTTOM NAVIGATION */}
-
         <footer className={styles.footer}>
           <div>
             <span className={styles.footerIcon}>✦</span>
-
             <div>
               <strong>Continuez votre progression !</strong>
               <p>
