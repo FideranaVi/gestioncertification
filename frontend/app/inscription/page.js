@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API = "http://localhost:5000/api/auth";
+// ✅ API Render / Local - ne plus mettre localhost en dur
+function obtenirApiAuth() {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const nettoye = String(base).replace(/\/$/, "");
+  if (nettoye.endsWith("/api/auth")) return nettoye;
+  if (nettoye.endsWith("/api")) return `${nettoye}/auth`;
+  return `${nettoye}/api/auth`;
+}
+const API = obtenirApiAuth();
 
 export default function InscriptionPage() {
   const router = useRouter();
@@ -61,7 +69,7 @@ export default function InscriptionPage() {
         })
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(
@@ -99,9 +107,13 @@ export default function InscriptionPage() {
 
       router.replace("/dashboard/apprenant");
     } catch (error) {
-      setErreur(
-        error.message || "Impossible de contacter le serveur."
-      );
+      if (error?.message?.includes("Failed to fetch") || error?.name === "TypeError") {
+        setErreur("Impossible de joindre le serveur. Vérifiez votre connexion et réessayez (le serveur Render peut mettre 30s à se réveiller).");
+      } else {
+        setErreur(
+          error.message || "Impossible de contacter le serveur."
+        );
+      }
     } finally {
       setChargement(false);
     }
