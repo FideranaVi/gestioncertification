@@ -1,20 +1,20 @@
-const BASE = (process.env.NEXT_PUBLIC_API_URL || "https://gestioncertification-backend.onrender.com").replace(/\/$/, "");
-
 export function obtenirApi() {
-  return `${BASE}/api`;
+  const base = process.env.NEXT_PUBLIC_API_URL || "https://gestioncertification-backend.onrender.com/api";
+  return String(base).replace(/\/$/, "");
 }
 
-export function obtenirApiAdmin() {
-  // OBLIGATOIRE : /api/admin, pas /api/utilisateurs, pas /api/utilisateur
-  return `${BASE}/api/admin`;
+export function obtenirApiAuth() {
+  return `${obtenirApi()}/auth`;
 }
 
 export function obtenirApiFormateur() {
-  return `${BASE}/api/formateur`;
+  return `${obtenirApi()}/formateur`;
 }
 
 export function obtenirApiApprenant() {
-  return `${BASE}/api/apprenant`;
+  return `${obtenirApi()}/apprenant`;
 }
 
-export default obtenirApi;
+export function obtenirApiAdmin() {
+  return `${obtenirApi()}/admin`;
+}
