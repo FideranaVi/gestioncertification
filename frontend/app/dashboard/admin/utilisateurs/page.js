@@ -15,18 +15,22 @@ function getToken() {
   if (typeof window === "undefined") return "";
   return localStorage.getItem("token") || sessionStorage.getItem("token") || "";
 }
+
 async function lireReponse(response) {
   try { return await response.json(); } catch { return {}; }
 }
 
-// CONFORME BACKEND : GET /utilisateurs?search=&role=administrateur&limit=100
-async function chargerUtilisateurs([, recherche, roleFiltre]) {
+// CONFORME BACKEND : GET /api/admin/utilisateurs?search=&role=administrateur&limit=100
+// FIX SWR : on ne déstructure plus la clé, on reçoit (recherche, roleFiltre) directement
+async function chargerUtilisateurs(recherche = "", roleFiltre = "") {
   const token = getToken();
   if (!token) throw new Error("Session expirée. Veuillez vous reconnecter.");
+
   const params = new URLSearchParams({ limit: "100", page: "1", sortBy: "idUtilisateur", order: "DESC" });
-  if (recherche.trim()) params.set("search", recherche.trim());
+  if (String(recherche || "").trim()) params.set("search", String(recherche).trim());
   // Backend attend administrateur en base, pas admin
   if (roleFiltre) params.set("role", roleFiltre === "admin" ? "administrateur" : roleFiltre);
+
   const response = await fetch(`${API}/utilisateurs?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
@@ -44,6 +48,7 @@ async function chargerUtilisateurs([, recherche, roleFiltre]) {
 }
 
 function getIdUtilisateur(user) { return user?.idUtilisateur ?? user?.id ?? user?.id_utilisateur ?? null; }
+
 function nomUtilisateur(user) {
   const nom = (user.nom || "").trim().toUpperCase();
   let prenom = (user.prenom || "").trim();
@@ -51,26 +56,35 @@ function nomUtilisateur(user) {
   const complet = [nom, prenom].filter(Boolean).join(" ");
   return complet || user.nomComplet || user.name || "Utilisateur";
 }
+
 function initiales(user) {
-  const prenom = user.prenom || ""; const nom = user.nom || "";
+  const prenom = user.prenom || "";
+  const nom = user.nom || "";
   const value = `${nom.charAt(0)}${prenom.charAt(0)}`.toUpperCase();
   return value.trim() || "U";
 }
+
 function formatDate(date) {
   if (!date) return "—";
   const valeur = new Date(date);
   if (Number.isNaN(valeur.getTime())) return "—";
   return valeur.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 }
+
 function roleLabel(role) {
   switch ((role || "").toLowerCase()) {
-    case "admin": case "administrateur": return "Administrateur";
-    case "formateur": return "Formateur";
-    case "apprenant": return "Apprenant";
-    default: return role || "Utilisateur";
+    case "admin":
+    case "administrateur":
+      return "Administrateur";
+    case "formateur":
+      return "Formateur";
+    case "apprenant":
+      return "Apprenant";
+    default:
+      return role || "Utilisateur";
   }
 }
-// Normalise pour les compteurs / badges : admin == administrateur
+
 function roleNormalise(role) {
   const r = String(role || "").toLowerCase();
   if (r === "admin" || r === "administrateur") return "administrateur";
@@ -85,14 +99,17 @@ export default function AdminUtilisateursPage() {
   const [erreurSuppression, setErreurSuppression] = useState("");
   const [succesSuppression, setSuccesSuppression] = useState("");
 
+  // FIX SWR : on passe une flèche () => chargerUtilisateurs(recherche, roleFiltre)
+  // Avant, SWR envoyait ("admin-utilisateurs", recherche, roleFiltre) et la fonction
+  // prenait [, recherche, roleFiltre] sur "admin-utilisateurs" -> recherche="d", role="m" -> 400 Rôle invalide
   const { data, error, isLoading, mutate } = useSWR(
     ["admin-utilisateurs", recherche, roleFiltre],
-    chargerUtilisateurs,
+    () => chargerUtilisateurs(recherche, roleFiltre),
     { revalidateOnFocus: true, revalidateOnReconnect: true, shouldRetryOnError: false }
   );
 
   const utilisateurs = useMemo(() => data || [], [data]);
-  // Le backend filtre déjà, on ne refiltre que pour l'affichage trié
+
   const utilisateursFiltres = useMemo(() => {
     return [...utilisateurs].sort((a, b) => {
       const dateA = new Date(a.dateCreation || a.createdAt || a.dateInscription || 0);
@@ -106,8 +123,10 @@ export default function AdminUtilisateursPage() {
   const totalAdmins = useMemo(() => utilisateurs.filter((u) => roleNormalise(u.role) === "administrateur").length, [utilisateurs]);
 
   const deconnexion = () => {
-    localStorage.removeItem("token"); sessionStorage.removeItem("token");
-    localStorage.removeItem("utilisateur"); localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    localStorage.removeItem("utilisateur");
+    localStorage.removeItem("user");
     router.push("/connexion");
   };
 
@@ -117,17 +136,24 @@ export default function AdminUtilisateursPage() {
     const confirmation = window.confirm(`Voulez-vous vraiment supprimer ${nomUtilisateur(user)} ? Cette action est irréversible.`);
     if (!confirmation) return;
     try {
-      setSuppression(id); setErreurSuppression(""); setSuccesSuppression("");
+      setSuppression(id);
+      setErreurSuppression("");
+      setSuccesSuppression("");
       const token = getToken();
       if (!token) throw new Error("Session expirée. Veuillez vous reconnecter.");
-      const response = await fetch(`${API}/utilisateurs/${encodeURIComponent(id)}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(`${API}/utilisateurs/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const result = await lireReponse(response);
       if (!response.ok) throw new Error(result.message || "La suppression a échoué.");
       setSuccesSuppression(result.message || "Utilisateur supprimé avec succès.");
       await mutate();
     } catch (err) {
       setErreurSuppression(err.message || "Impossible de supprimer cet utilisateur.");
-    } finally { setSuppression(null); }
+    } finally {
+      setSuppression(null);
+    }
   };
 
   return (
@@ -137,6 +163,7 @@ export default function AdminUtilisateursPage() {
         <span className={styles.pageTitle}>Utilisateurs</span>
         <span className={styles.topBarSpacer} />
       </div>
+
       <div className={styles.container}>
         <header className={styles.header}>
           <div>
@@ -161,6 +188,7 @@ export default function AdminUtilisateursPage() {
             <div><h2>Liste des utilisateurs</h2><p>Retrouvez tous les comptes enregistrés.</p></div>
             <span className={styles.count}>{utilisateursFiltres.length} utilisateur(s)</span>
           </div>
+
           <div className={styles.filters}>
             <div className={styles.searchBox}>
               <Search size={18} />
@@ -178,7 +206,8 @@ export default function AdminUtilisateursPage() {
           {succesSuppression && <div className={styles.success}>{succesSuppression}</div>}
           {erreurSuppression && (
             <div className={styles.error}>
-              <strong>Erreur de suppression</strong><p>{erreurSuppression}</p>
+              <strong>Erreur de suppression</strong>
+              <p>{erreurSuppression}</p>
               <button type="button" onClick={() => setErreurSuppression("")}>Fermer</button>
             </div>
           )}
@@ -227,6 +256,7 @@ export default function AdminUtilisateursPage() {
           )}
         </section>
       </div>
+
       <nav className={styles.bottomNav}>
         <Link href="/dashboard/admin" className={styles.bottomNavLink}>Tableau de bord</Link>
         <Link href="/dashboard/admin/utilisateurs" className={`${styles.bottomNavLink} ${styles.bottomNavActive}`}>Utilisateurs</Link>
