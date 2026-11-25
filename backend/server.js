@@ -31,6 +31,19 @@ const routes = [
   ["formateurRoutes", "./routes/formateurRoutes", "/api/formateur"],
   ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"],
   ["tentativeQuizRoutes", "./routes/tentativeQuizRoutes", "/api/tentatives"],
+
+  // =====================================================
+  // AJOUT — CERTIFICATS, sans rien enlever au-dessus
+  // Il faut les 3 montages, sinon 404 :
+  // - Formateur : /api/formateur/certificats/formateur
+  //   = obtenirApiFormateur() + "/certificats/formateur"
+  // - Apprenant / Admin : /api/certificats
+  // - Apprenant : /api/apprenant/certificats
+  // C'est le même fichier, Express le monte 3 fois, c'est normal.
+  // =====================================================
+  ["certificatRoutesFormateur", "./routes/certificatRoutes", "/api/formateur/certificats"],
+  ["certificatRoutes", "./routes/certificatRoutes", "/api/certificats"],
+  ["certificatRoutesApprenant", "./routes/certificatRoutes", "/api/apprenant/certificats"],
 ];
 
 for (const [name, routePath, url] of routes) {
