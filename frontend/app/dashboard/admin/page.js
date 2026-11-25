@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import styles from "./admin.module.css";
 
-const API = "http://localhost:5000/api";
+import { obtenirApiAdmin } from "@/lib/api";
+const API = obtenirApiAdmin();
 
 function getToken() {
   if (typeof window === "undefined") return null;

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./quiz-final.module.css";
 
-const API = "http://localhost:5000/api";
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
 
 export default function QuizFinalPage() {
   const router = useRouter();

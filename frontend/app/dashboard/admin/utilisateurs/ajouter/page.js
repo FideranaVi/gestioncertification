@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, UserPlus, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import styles from "./ajouter.module.css";
 
-const API = "http://localhost:5000/api/utilisateur";
+import { obtenirApiAdmin } from "@/lib/api";
+const API = obtenirApiAdmin();
 
 async function lireReponse(response) {
   const text = await response.text();

@@ -3,15 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { obtenirApiAuth } from "@/lib/api";
 
-// ✅ API Render / Local - ne plus mettre localhost en dur
-function obtenirApiAuth() {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-  const nettoye = String(base).replace(/\/$/, "");
-  if (nettoye.endsWith("/api/auth")) return nettoye;
-  if (nettoye.endsWith("/api")) return `${nettoye}/auth`;
-  return `${nettoye}/api/auth`;
-}
 const API = obtenirApiAuth();
 
 export default function InscriptionPage() {

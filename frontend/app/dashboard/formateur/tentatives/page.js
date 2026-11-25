@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import styles from "./tentatives.module.css";
 
-// ✅ CORRIGÉ : UNE SEULE API, celle du formateur
-// On ne touche plus jamais à /api/certificats depuis cette page
-const API = "http://localhost:5000/api/formateur";
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
 const ACTUALISATION_MS = 5000;
 const DELAI_INACTIVITE_MS = 30000;
 

@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import styles from "./apprenant.module.css";
 
-const API = "http://localhost:5000/api/apprenant";
+import { obtenirApiApprenant } from "@/lib/api";
+const API = obtenirApiApprenant();
 
 export default function ApprenantDashboard() {
   const [dashboard, setDashboard] = useState(null);

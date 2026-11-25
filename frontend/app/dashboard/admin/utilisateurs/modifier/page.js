@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import styles from "./modifier.module.css";
 
-const API = "http://localhost:5000/api/utilisateur";
+import { obtenirApiAdmin } from "@/lib/api";
+const API = obtenirApiAdmin();
 
 async function lireReponse(response) {
   const text = await response.text();

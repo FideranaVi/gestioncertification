@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./modifier.module.css";
 
-const API = "http://localhost:5000/api/formateur";
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
 
 function token() {
   if (typeof window === "undefined") return null;

@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "./resultats.module.css";
 
-const API = "http://localhost:5000/api/apprenant";
+import { obtenirApiApprenant } from "@/lib/api";
+const API = obtenirApiApprenant();
 
 export default function ResultatsPage() {
   const [resultats, setResultats] = useState([]);

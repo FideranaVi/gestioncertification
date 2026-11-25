@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import styles from "./formation.module.css";
 
-const API = "http://localhost:5000/api/formateur";
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
 
 const INITIAL_FORM = {
   titre: "",

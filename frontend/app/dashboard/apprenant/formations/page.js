@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import styles from "./formations.module.css";
 
-const API = "http://localhost:5000/api/apprenant";
-const SERVEUR = "http://localhost:5000";
+import { obtenirApiApprenant } from "@/lib/api";
+const API = obtenirApiApprenant();
 
 function Icon({ name, size = 18 }) {
   const paths = {

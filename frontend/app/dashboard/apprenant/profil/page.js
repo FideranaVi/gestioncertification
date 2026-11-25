@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Camera, Mail, User, Trophy, BookOpen, FileText } from "lucide-react";
 import styles from "./profil.module.css";
 
-const API = "http://localhost:5000/api/apprenant";
+import { obtenirApiApprenant } from "@/lib/api";
+const API = obtenirApiApprenant();
 
 export default function ProfilPage() {
   const router = useRouter();

@@ -3,17 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { obtenirApiAuth } from "@/lib/api";
 
-function obtenirApiAuth() {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-  const nettoye = String(base).replace(/\/$/, "");
-  // Si NEXT_PUBLIC_API_URL = https://...onrender.com/api -> on ajoute /auth
-  // Si = https://...onrender.com/api/auth -> on garde tel quel
-  // Si = https://...onrender.com -> on ajoute /api/auth
-  if (nettoye.endsWith("/api/auth")) return nettoye;
-  if (nettoye.endsWith("/api")) return `${nettoye}/auth`;
-  return `${nettoye}/api/auth`;
-}
 const API = obtenirApiAuth();
 
 export default function ConnexionPage() {
@@ -80,7 +71,6 @@ export default function ConnexionPage() {
       sauvegarderSession(data);
       router.replace(data.redirectTo || "/dashboard/apprenant");
     } catch (error) {
-      // ✅ Message clair sur téléphone quand le backend ne répond pas
       if (error?.message?.includes("Failed to fetch") || error?.name === "TypeError") {
         setErreur("Impossible de joindre le serveur. Vérifiez votre connexion et réessayez (le serveur Render peut mettre 30s à se réveiller).");
       } else {

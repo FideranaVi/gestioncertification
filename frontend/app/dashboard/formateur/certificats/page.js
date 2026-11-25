@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import styles from "./certificats.module.css";
 
-const API = "http://localhost:5000/api/formateur";
+import { obtenirApiFormateur } from "@/lib/api";
+const API = obtenirApiFormateur();
 
 function obtenirToken() {
   if (typeof window === "undefined") return null;

@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import styles from "./utilisateur.module.css";
 
-const API = "http://localhost:5000/api/utilisateur";
+import { obtenirApiAdmin } from "@/lib/api";
+const API = obtenirApiAdmin();
 
 function Icon({ name, size = 18 }) {
   const icons = {

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import styles from "./modifier.module.css";
 
-const API = "http://localhost:5000/api/module";
+import { obtenirApiAdmin } from "@/lib/api";
+const API = obtenirApiAdmin();
 
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem("token");

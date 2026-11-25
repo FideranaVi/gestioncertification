@@ -3,8 +3,8 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./quiz.module.css";
-
-const API = "http://localhost:5000/api/apprenant";
+import { obtenirApiApprenant } from "@/lib/api";
+const API = obtenirApiApprenant();
 
 function obtenirToken() {
   if (typeof window === "undefined") return "";

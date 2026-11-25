@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./certificats.module.css";
-
-const API = "http://localhost:5000/api/apprenant";
+import { obtenirApiApprenant } from "@/lib/api";
+const API = obtenirApiApprenant();
 
 export default function CertificatsPage() {
   const router = useRouter();
