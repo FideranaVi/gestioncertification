@@ -46,7 +46,6 @@ async function fetchFormations() {
   if (!res.ok) throw new Error(data.message || `Erreur HTTP ${res.status}`);
   return getFormations(data);
 }
-// Fallback si le backend n'a pas encore le total : essaie /inscriptions
 async function enrichirAvecInscriptions(formations) {
   const token = getToken();
   if (!token) return formations;
@@ -175,17 +174,17 @@ export default function FormationsPage() {
 
       <section className={styles.hero}>
         <div><span className={styles.eyebrow}>ESPACE FORMATEUR</span><h1>Mes formations</h1><p>Gérez vos formations, suivez les inscriptions des apprenants et préparez les évaluations finales.</p></div>
-        <button type="button" className={styles.addButton} onClick={ouvrirCreation}>+ Créer une formation</button>
+        <button type="button" className={styles.addButton} onClick={ouvrirCreation}>✦ Créer une formation</button>
       </section>
 
       {message && <div className={styles.success}><span>✓</span>{message}<button type="button" onClick={() => setMessage("")}>×</button></div>}
       {erreur && !modal && <div className={styles.error}>{erreur}<button type="button" onClick={() => setErreur("")}>×</button></div>}
 
       <section className={styles.statistics}>
-        <article className={styles.statCard}><div className={styles.statIcon}>🎓</div><div><span>Total formations</span><strong>{formations.length}</strong></div></article>
-        <article className={`${styles.statCard} ${styles.statHighlight}`}><div className={styles.statIcon}>👥</div><div><span>Apprenants inscrits</span><strong>{totalInscriptions}</strong><small>Total toutes formations</small></div></article>
+        <article className={styles.statCard}><div className={styles.statIcon}>📖</div><div><span>Total formations</span><strong>{formations.length}</strong></div></article>
+        <article className={`${styles.statCard} ${styles.statHighlight}`}><div className={styles.statIcon}>🌿</div><div><span>Apprenants inscrits</span><strong>{totalInscriptions}</strong><small>Total toutes formations</small></div></article>
         <article className={styles.statCard}><div className={styles.statIcon}>📚</div><div><span>Total modules</span><strong>{totalLecons}</strong></div></article>
-        <article className={styles.statCard}><div className={styles.statIcon}>📝</div><div><span>Avec quiz final</span><strong>{formations.filter((f) => getQuizFinal(f)).length}</strong></div></article>
+        <article className={styles.statCard}><div className={styles.statIcon}>✏️</div><div><span>Avec quiz final</span><strong>{formations.filter((f) => getQuizFinal(f)).length}</strong></div></article>
       </section>
 
       <section className={styles.content}>
@@ -194,7 +193,7 @@ export default function FormationsPage() {
           <button type="button" className={styles.refreshButton} onClick={chargerFormations} disabled={chargement}>↻ Actualiser</button>
         </div>
         <div className={styles.toolbar}>
-          <div className={styles.searchBox}><span>⌕</span><input type="search" placeholder="Rechercher une formation..." value={recherche} onChange={(e) => setRecherche(e.target.value)} /></div>
+          <div className={styles.searchBox}><span>🔍</span><input type="search" placeholder="Rechercher une formation..." value={recherche} onChange={(e) => setRecherche(e.target.value)} /></div>
           <select value={filtre} onChange={(e) => setFiltre(e.target.value)} className={styles.filter}>
             <option value="toutes">Toutes les formations</option>
             <option value="avecLecons">Avec des modules</option>
@@ -206,10 +205,10 @@ export default function FormationsPage() {
           <div className={styles.loading}><div className={styles.spinner}></div><p>Chargement des formations...</p></div>
         ) : formationsFiltrees.length === 0 ? (
           <div className={styles.empty}>
-            <div className={styles.emptyIcon}>📚</div>
+            <div className={styles.emptyIcon}>🌱</div>
             <h3>{recherche || filtre !== "toutes" ? "Aucun résultat trouvé" : "Aucune formation pour le moment"}</h3>
             <p>{recherche || filtre !== "toutes" ? "Essayez de modifier votre recherche ou votre filtre." : "Commencez par créer votre première formation."}</p>
-            {!recherche && filtre === "toutes" && <button type="button" onClick={ouvrirCreation} className={styles.addButton}>+ Créer ma première formation</button>}
+            {!recherche && filtre === "toutes" && <button type="button" onClick={ouvrirCreation} className={styles.addButton}>✦ Créer ma première formation</button>}
           </div>
         ) : (
           <div className={styles.grid}>
@@ -219,28 +218,28 @@ export default function FormationsPage() {
               return (
                 <article className={styles.formationCard} key={formation.numFormation}>
                   <div className={styles.cardBanner}>
-                    <span className={styles.cardIcon}>🎓</span>
+                    <span className={styles.cardIcon}>📖</span>
                     <span className={styles.cardBadge}>FORMATION</span>
-                    <span className={styles.followersBadge}>👥 {nombreApprenants} inscrit{nombreApprenants > 1 ? "s" : ""}</span>
+                    <span className={styles.followersBadge}>🌿 {nombreApprenants} inscrit{nombreApprenants > 1 ? "s" : ""}</span>
                   </div>
                   <div className={styles.cardBody}>
                     <h3>{formation.titre}</h3>
                     <p className={styles.description}>{formation.description || "Aucune description disponible."}</p>
                     <div className={styles.cardStats}>
-                      <div className={styles.learnerStat}><span className={styles.learnerIcon}>👥</span><div><strong>{nombreApprenants}</strong><span>Apprenants inscrits</span></div></div>
+                      <div className={styles.learnerStat}><span className={styles.learnerIcon}>🌿</span><div><strong>{nombreApprenants}</strong><span>Apprenants inscrits</span></div></div>
                       <div className={styles.moduleStat}><span>📚</span><strong>{nombreLecons(formation)}</strong><span>Modules</span></div>
                     </div>
                     <div className={styles.cardDetails}>
-                      <div><span>📅</span><span>Début : {formatDate(formation.dateDebut)}</span></div>
+                      <div><span>🗓️</span><span>Début : {formatDate(formation.dateDebut)}</span></div>
                       <div><span>🏁</span><span>Fin : {formatDate(formation.dateFin)}</span></div>
                     </div>
                     <div className={styles.finalQuiz}>
-                      <div className={styles.finalQuizInfo}><span className={styles.quizIcon}>📝</span><div><strong>Évaluation finale</strong><span>{quizFinal ? "Un quiz final est déjà associé." : "Aucun quiz final créé."}</span></div></div>
+                      <div className={styles.finalQuizInfo}><span className={styles.quizIcon}>✏️</span><div><strong>Évaluation finale</strong><span>{quizFinal ? "Un quiz final est déjà associé." : "Aucun quiz final créé."}</span></div></div>
                       <Link href={lienQuizFinal(formation)} className={styles.quizButton}>{quizFinal ? "Modifier le quiz final →" : "+ Créer le quiz final"}</Link>
                     </div>
                     <div className={styles.cardActions}>
-                      <button type="button" className={styles.editButton} onClick={() => ouvrirModification(formation)}>✏ Modifier</button>
-                      <button type="button" className={styles.deleteButton} onClick={() => supprimerFormation(formation)} disabled={suppression === formation.numFormation}>{suppression === formation.numFormation ? "Suppression..." : "🗑 Supprimer"}</button>
+                      <button type="button" className={styles.editButton} onClick={() => ouvrirModification(formation)}>✏️ Modifier</button>
+                      <button type="button" className={styles.deleteButton} onClick={() => supprimerFormation(formation)} disabled={suppression === formation.numFormation}>{suppression === formation.numFormation ? "Suppression..." : "🗑️ Supprimer"}</button>
                     </div>
                   </div>
                 </article>
@@ -252,11 +251,11 @@ export default function FormationsPage() {
 
       <nav className={styles.bottomNav}>
         <Link href="/dashboard/formateur"><span>🏠</span><small>Dashboard</small></Link>
-        <Link href="/dashboard/formateur/formations" className={styles.navActive}><span>🎓</span><small>Formations</small></Link>
+        <Link href="/dashboard/formateur/formations" className={styles.navActive}><span>📖</span><small>Formations</small></Link>
         <Link href="/dashboard/formateur/modules"><span>📚</span><small>Modules</small></Link>
-        <Link href="/dashboard/formateur/quiz"><span>📝</span><small>Quiz</small></Link>
+        <Link href="/dashboard/formateur/quiz"><span>✏️</span><small>Quiz</small></Link>
         <Link href="/dashboard/formateur/tentatives"><span>👀</span><small>Suivi</small></Link>
-        <Link href="/dashboard/formateur/certificats"><span>🏆</span><small>Certificats</small></Link>
+        <Link href="/dashboard/formateur/certificats"><span>🏅</span><small>Certificats</small></Link>
       </nav>
 
       {modal && (
