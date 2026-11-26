@@ -4,103 +4,349 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./tentatives.module.css";
 import { obtenirApiFormateur } from "@/lib/api";
-const API_FORMATEUR = obtenirApiFormateur();
-const API_TENTATIVES = API_FORMATEUR + "/tentatives";
+
+const API = obtenirApiFormateur() + "/tentatives";
 const ACTUALISATION_MS = 5000;
-const DELAI_INACTIVITE_MS = 30000;
-function obtenirToken() { if (typeof window === "undefined") return ""; return sessionStorage.getItem("token") || localStorage.getItem("token") || ""; }
-function dateLisible(date) { if (!date) return "Non disponible"; const v = new Date(date); if (Number.isNaN(v.getTime())) return "Non disponible"; return v.toLocaleString("fr-FR"); }
-function dureeLisible(secondes) { const total = Math.max(0, Number(secondes || 0)); const h = Math.floor(total / 3600); const m = Math.floor((total % 3600) / 60); const s = Math.floor(total % 60); if (h > 0) return h + " h " + m + " min"; if (m > 0) return m + " min " + s + " s"; return s + " s"; }
-function obtenirDateActivite(t) { return t.derniereActivite || t.dateTentative || null; }
-function signalActiviteAncien(t, maintenant) { if (t.statut !== "en_cours" || !t.derniereActivite) return false; const d = new Date(t.derniereActivite).getTime(); if (Number.isNaN(d)) return false; return maintenant - d > DELAI_INACTIVITE_MS; }
-function statutTentative(t, maintenant) { const s = String(t.statut || "").toLowerCase(); if (s === "terminee" || s === "terminée") return "terminee"; if (s === "abandonnee" || s === "abandonnée") return "abandonnee"; if (s !== "en_cours") return "en_cours"; if (t.horsEcran) return "hors_ecran"; if (signalActiviteAncien(t, maintenant)) return "signal_inactif"; return "en_cours"; }
-function statutTexte(s) { if (s === "terminee") return "Terminée"; if (s === "hors_ecran") return "Hors écran"; if (s === "signal_inactif") return "Signal ancien"; if (s === "abandonnee") return "Abandonnée"; return "En cours"; }
-function filtrerTentative(t, filtre, maintenant) { const s = statutTentative(t, maintenant); if (filtre === "toutes") return true; if (filtre === "en_cours") return s === "en_cours"; if (filtre === "hors_ecran") return s === "hors_ecran"; if (filtre === "signal_inactif") return s === "signal_inactif"; if (filtre === "terminee") return s === "terminee"; if (filtre === "abandonnee") return s === "abandonnee"; if (filtre === "avec_sorties") return Number(t.nbSorties || 0) > 0; return true; }
-function nomApprenant(t) { const a = t.apprenant; if (!a) return "Apprenant #" + (t.idApprenant || "?"); const nom = String(a.nom || "").trim().toUpperCase(); let prenom = String(a.prenom || "").trim(); if (prenom) prenom = prenom.charAt(0).toUpperCase() + prenom.slice(1).toLowerCase(); const complet = [nom, prenom].filter(Boolean).join(" "); return complet || ("Apprenant #" + t.idApprenant); }
-function obtenirScore(t) { if (t.evaluation && t.evaluation.score !== undefined && t.evaluation.score !== null) return Number(t.evaluation.score); if (t.score !== undefined && t.score !== null) return Number(t.score); return null; }
-function resultatEvaluation(t) { return String(t.evaluation?.resultat || t.resultat || "").toLowerCase(); }
-function statutCertificat(t) { const c = t.certificat || {}; const s = String(c.statutCertificat || c.statutValidation || c.statut || t.statutCertificat || t.certificatStatut || "").toLowerCase(); if (["valide", "validé", "validee", "validée"].includes(s)) return "valide"; if (["refuse", "refusé", "refusee", "refusée", "annule", "annulé", "annulee", "annulée"].includes(s)) return "refuse"; return "en_attente"; }
-function obtenirIdCertificat(t) { return t.certificat?.idCertificat || t.certificat?.id || t.idCertificat || t.certificatId || null; }
-function typeActiviteTexte(type) { const l = { sortie_onglet: "Sortie de l'onglet", sortie_fenetre: "Sortie de la fenêtre", page_quittee: "Page quittée", retour: "Retour sur la page" }; return l[type] || type || "Activité"; }
-function obtenirClasseStatut(s) { if (s === "terminee") return styles.terminee; if (s === "hors_ecran") return styles.hors_ecran; if (s === "signal_inactif") return styles.signal_inactif || styles.hors_ecran; if (s === "abandonnee") return styles.abandonnee; return styles.en_cours; }
+const DELAI_HORS_LIGNE_MS = 30000; // 30s sans activité = hors ligne
+
+function obtenirToken() {
+  if (typeof window === "undefined") return "";
+  return sessionStorage.getItem("token") || localStorage.getItem("token") || "";
+}
+function dateLisible(date) {
+  if (!date) return "Non disponible";
+  const v = new Date(date);
+  return Number.isNaN(v.getTime()) ? "Non disponible" : v.toLocaleString("fr-FR");
+}
+function dureeLisible(sec) {
+  const total = Math.max(0, Number(sec || 0));
+  const m = Math.floor(total / 60);
+  const s = Math.floor(total % 60);
+  if (m > 0) return `${m} min ${s} s`;
+  return `${s} s`;
+}
+function nomApprenant(t) {
+  const a = t.apprenant;
+  if (!a) return `Apprenant #${t.idApprenant || "?"}`;
+  const nom = String(a.nom || "").trim().toUpperCase();
+  let prenom = String(a.prenom || "").trim();
+  if (prenom) prenom = prenom.charAt(0).toUpperCase() + prenom.slice(1).toLowerCase();
+  return [nom, prenom].filter(Boolean).join(" ") || `Apprenant #${t.idApprenant}`;
+}
+function obtenirScore(t) {
+  if (t.evaluation?.score != null) return Number(t.evaluation.score);
+  if (t.score != null) return Number(t.score);
+  return null;
+}
+function typeActiviteTexte(type) {
+  const map = {
+    sortie_onglet: "Sortie de l'onglet",
+    sortie_fenetre: "Sortie de la fenêtre",
+    page_quittee: "Page quittée",
+    retour: "Retour sur la page",
+  };
+  return map[type] || type || "Activité";
+}
+
+// ===== LOGIQUE DE STATUT - SIMPLIFIÉE ET CORRIGÉE =====
+function derniereActiviteMs(t) {
+  const d = new Date(t.derniereActivite || t.dateTentative || 0).getTime();
+  return Number.isNaN(d) ? 0 : d;
+}
+function estSortie(type) {
+  return ["sortie_onglet", "sortie_fenetre", "page_quittee", "sortie", "hors_ecran", "hidden", "blur"].includes(String(type || "").toLowerCase());
+}
+function derniereActiviteJournal(t) {
+  const acts = Array.isArray(t.activites) ? t.activites : [];
+  if (!acts.length) return null;
+  return acts[acts.length - 1];
+}
+
+// Le seul endroit qui décide du statut
+function statutTentative(t, maintenant) {
+  const base = String(t.statut || "").toLowerCase();
+  if (base === "terminee" || base === "terminée") return "terminee";
+  if (base === "abandonnee" || base === "abandonnée") return "abandonnee";
+
+  // Si ce n'est pas en_cours en base, ce n'est PAS en cours
+  if (base !== "en_cours") return "hors_ligne";
+
+  const age = maintenant - derniereActiviteMs(t);
+  const derniere = derniereActiviteJournal(t);
+
+  // 1. Hors écran = dernier événement = sortie, sans retour
+  if (derniere && estSortie(derniere.type)) return "hors_ecran";
+  if (t.horsEcran === true) return "hors_ecran";
+
+  // 2. Hors ligne = plus de 30s sans activité
+  if (age > DELAI_HORS_LIGNE_MS) return "hors_ligne";
+
+  // 3. Sinon, vraiment en cours
+  return "en_cours";
+}
+
+function statutTexte(s) {
+  if (s === "terminee") return "Terminée";
+  if (s === "hors_ecran") return "Hors écran";
+  if (s === "hors_ligne") return "Hors ligne";
+  if (s === "abandonnee") return "Abandonnée";
+  return "En cours";
+}
+function classeStatut(s) {
+  if (s === "terminee") return styles.terminee;
+  if (s === "hors_ecran") return styles.hors_ecran;
+  if (s === "hors_ligne") return styles.signal_inactif || styles.hors_ecran;
+  if (s === "abandonnee") return styles.abandonnee;
+  return styles.en_cours;
+}
+
 export default function TentativesFormateurPage() {
   const router = useRouter();
-  const [tentatives, setTentatives] = useState([]); const [chargement, setChargement] = useState(true); const [erreur, setErreur] = useState(""); const [recherche, setRecherche] = useState(""); const [filtre, setFiltre] = useState("toutes"); const [formationSelectionnee, setFormationSelectionnee] = useState("toutes"); const [detailsOuverts, setDetailsOuverts] = useState({}); const [actualisation, setActualisation] = useState(null); const [maintenant, setMaintenant] = useState(0); const [validationsEnCours, setValidationsEnCours] = useState({}); const [messagesValidation, setMessagesValidation] = useState({});
-  const requeteEnCours = useRef(false); const pageActive = useRef(true); const validationEnCoursRef = useRef(false);
+  const [tentatives, setTentatives] = useState([]);
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState("");
+  const [recherche, setRecherche] = useState("");
+  const [filtre, setFiltre] = useState("toutes");
+  const [formationSelectionnee, setFormationSelectionnee] = useState("toutes");
+  const [detailsOuverts, setDetailsOuverts] = useState({});
+  const [actualisation, setActualisation] = useState(null);
+  const [maintenant, setMaintenant] = useState(() => Date.now());
+  const [validationsEnCours, setValidationsEnCours] = useState({});
+  const [messagesValidation, setMessagesValidation] = useState({});
+  const requeteEnCours = useRef(false);
+  const pageActive = useRef(true);
+
   const chargerTentatives = useCallback(async (force) => {
-    if (requeteEnCours.current && !force) return null; if (validationEnCoursRef.current && !force) return null; requeteEnCours.current = true;
-    const token = obtenirToken(); if (!token) { requeteEnCours.current = false; router.push("/connexion"); return null; }
+    if (requeteEnCours.current && !force) return null;
+    requeteEnCours.current = true;
+    const token = obtenirToken();
+    if (!token) { requeteEnCours.current = false; router.push("/connexion"); return null; }
     try {
-      const response = await fetch(API_TENTATIVES, { method: "GET", headers: { Authorization: "Bearer " + token, Accept: "application/json" }, cache: "no-store" });
-      const donnees = await response.json().catch(() => ({}));
+      const res = await fetch(API, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
       if (!pageActive.current) return null;
-      if (response.status === 401 || response.status === 403) { router.push("/connexion"); return null; }
-      if (!response.ok) throw new Error(donnees.message || "Impossible de récupérer les résultats des apprenants.");
-      const liste = Array.isArray(donnees.tentatives) ? donnees.tentatives : []; setTentatives(liste); setErreur(""); setActualisation(new Date()); return liste;
-    } catch (error) { if (pageActive.current) setErreur(error.message || "Erreur de récupération des tentatives."); return null; } finally { requeteEnCours.current = false; if (pageActive.current) setChargement(false); }
+      if (res.status === 401 || res.status === 403) { router.push("/connexion"); return null; }
+      if (!res.ok) throw new Error(data.message || "Impossible de récupérer les tentatives.");
+      const liste = Array.isArray(data.tentatives) ? data.tentatives : [];
+      setTentatives(liste); setErreur(""); setActualisation(new Date());
+      return liste;
+    } catch (e) {
+      if (pageActive.current) setErreur(e.message || "Erreur de récupération.");
+      return null;
+    } finally {
+      requeteEnCours.current = false;
+      if (pageActive.current) setChargement(false);
+    }
   }, [router]);
-  useEffect(() => { pageActive.current = true; const p = setTimeout(() => { chargerTentatives(true); }, 0); const i = setInterval(() => { chargerTentatives(false); }, ACTUALISATION_MS); const h = setInterval(() => { setMaintenant(Date.now()); }, 1000); return () => { pageActive.current = false; clearTimeout(p); clearInterval(i); clearInterval(h); }; }, [chargerTentatives]);
-  const formations = useMemo(() => { const map = new Map(); tentatives.forEach((t) => { if (t.formation?.numFormation) map.set(Number(t.formation.numFormation), t.formation.titre || "Formation sans titre"); }); return Array.from(map.entries()).map(([id, titre]) => ({ id: String(id), titre })); }, [tentatives]);
-  const statistiques = useMemo(() => { const total = tentatives.length; const enCours = tentatives.filter((t) => statutTentative(t, maintenant) === "en_cours").length; const horsEcran = tentatives.filter((t) => statutTentative(t, maintenant) === "hors_ecran").length; const signalInactif = tentatives.filter((t) => statutTentative(t, maintenant) === "signal_inactif").length; const terminees = tentatives.filter((t) => statutTentative(t, maintenant) === "terminee").length; const abandonnees = tentatives.filter((t) => statutTentative(t, maintenant) === "abandonnee").length; const sorties = tentatives.reduce((a, t) => a + Number(t.nbSorties || 0), 0); return { total, enCours, horsEcran, signalInactif, terminees, abandonnees, sorties }; }, [tentatives, maintenant]);
-  const tentativesFiltrees = useMemo(() => { const terme = recherche.trim().toLowerCase(); return tentatives.filter((t) => { if (!filtrerTentative(t, filtre, maintenant)) return false; if (formationSelectionnee !== "toutes" && Number(t.formation?.numFormation) !== Number(formationSelectionnee)) return false; if (!terme) return true; const textes = [nomApprenant(t), t.apprenant?.email, t.quiz?.nomQuiz, t.formation?.titre, t.moduleInfo?.titreModule, t.statut]; return textes.some((x) => String(x || "").toLowerCase().includes(terme)); }); }, [tentatives, recherche, filtre, formationSelectionnee, maintenant]);
-  const traiterValidationCertificat = async (tentative, decision) => {
-    const id = tentative.idTentative; if (!id || validationsEnCours[id]) return; const token = obtenirToken(); if (!token) { router.push("/connexion"); return; }
-    if (!window.confirm(decision === "valider" ? "Confirmer la validation du certificat de cet apprenant ?" : "Confirmer le refus du certificat de cet apprenant ?")) return;
-    validationEnCoursRef.current = true; setValidationsEnCours((p) => ({ ...p, [id]: true })); setMessagesValidation((p) => ({ ...p, [id]: "" }));
+
+  useEffect(() => {
+    pageActive.current = true;
+    chargerTentatives(true);
+    const poll = setInterval(() => chargerTentatives(false), ACTUALISATION_MS);
+    const horloge = setInterval(() => setMaintenant(Date.now()), 1000);
+    return () => { pageActive.current = false; clearInterval(poll); clearInterval(horloge); };
+  }, [chargerTentatives]);
+
+  const formations = useMemo(() => {
+    const map = new Map();
+    tentatives.forEach((t) => { if (t.formation?.numFormation) map.set(Number(t.formation.numFormation), t.formation.titre || "Formation sans titre"); });
+    return Array.from(map.entries()).map(([id, titre]) => ({ id: String(id), titre }));
+  }, [tentatives]);
+
+  // Stats calculées avec LA MÊME logique que le filtre
+  const stats = useMemo(() => {
+    const compte = (s) => tentatives.filter((t) => statutTentative(t, maintenant) === s).length;
+    return {
+      total: tentatives.length,
+      enCours: compte("en_cours"),
+      horsEcran: compte("hors_ecran"),
+      horsLigne: compte("hors_ligne"),
+      terminees: compte("terminee"),
+      abandonnees: compte("abandonnee"),
+      sorties: tentatives.reduce((a, t) => a + Number(t.nbSorties || 0), 0),
+    };
+  }, [tentatives, maintenant]);
+
+  const filtrees = useMemo(() => {
+    const terme = recherche.trim().toLowerCase();
+    return tentatives.filter((t) => {
+      if (filtre !== "toutes") {
+        if (filtre === "avec_sorties") { if (Number(t.nbSorties || 0) <= 0) return false; }
+        else if (statutTentative(t, maintenant) !== filtre) return false;
+      }
+      if (formationSelectionnee !== "toutes" && Number(t.formation?.numFormation) !== Number(formationSelectionnee)) return false;
+      if (!terme) return true;
+      const textes = [nomApprenant(t), t.apprenant?.email, t.quiz?.nomQuiz, t.formation?.titre, t.statut];
+      return textes.some((x) => String(x || "").toLowerCase().includes(terme));
+    });
+  }, [tentatives, recherche, filtre, formationSelectionnee, maintenant]);
+
+  const validerCertificat = async (tentative, decision) => {
+    const id = tentative.idTentative;
+    if (!id || validationsEnCours[id]) return;
+    const token = obtenirToken();
+    if (!token) { router.push("/connexion"); return; }
+    if (!window.confirm(decision === "valider" ? "Valider le certificat de cet apprenant ?" : "Refuser le certificat de cet apprenant ?")) return;
+    setValidationsEnCours((p) => ({ ...p, [id]: true }));
+    setMessagesValidation((p) => ({ ...p, [id]: "" }));
     try {
-      const response = await fetch(API_TENTATIVES + "/" + id + "/certificat", { method: "PATCH", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ decision }) });
-      const donnees = await response.json().catch(() => ({}));
-      if (response.status === 401 || response.status === 403) { router.push("/connexion"); return; }
-      if (!response.ok) { if (response.status === 404) throw new Error("Route introuvable (404). Verifie tentativeRoutes.js : router.patch('/:id/certificat', ...)"); if (response.status === 409) throw new Error("Cette demande a déjà été traitée."); if (response.status === 400) throw new Error(donnees.message || "L'apprenant n'a pas encore réussi cette évaluation."); throw new Error(donnees.message || "Impossible de traiter le certificat."); }
-      const listeApres = await chargerTentatives(true); const apres = (listeApres || []).find((t) => Number(t.idTentative) === Number(id)); const statutApres = apres ? statutCertificat(apres) : "en_attente"; const attendu = decision === "valider" ? "valide" : "refuse";
-      if (statutApres !== attendu) throw new Error("Le backend a repondu OK mais la base est toujours en '" + statutApres + "'. La validation n'a pas ete enregistree.");
-      setMessagesValidation((p) => ({ ...p, [id]: donnees.message || (decision === "valider" ? "Certificat validé avec succès. L'apprenant peut maintenant le télécharger." : "Certificat refusé.") }));
-    } catch (error) { await chargerTentatives(true); setMessagesValidation((p) => ({ ...p, [id]: error.message || "Une erreur est survenue." })); } finally { validationEnCoursRef.current = false; setValidationsEnCours((p) => ({ ...p, [id]: false })); }
+      const res = await fetch(`${API}/${id}/certificat`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401 || res.status === 403) { router.push("/connexion"); return; }
+      if (!res.ok) throw new Error(data.message || "Impossible de traiter le certificat.");
+      await chargerTentatives(true);
+      setMessagesValidation((p) => ({ ...p, [id]: data.message || (decision === "valider" ? "Certificat validé." : "Certificat refusé.") }));
+    } catch (e) {
+      await chargerTentatives(true);
+      setMessagesValidation((p) => ({ ...p, [id]: e.message }));
+    } finally {
+      setValidationsEnCours((p) => ({ ...p, [id]: false }));
+    }
   };
-  const toggleDetails = (id) => { setDetailsOuverts((p) => ({ ...p, [id]: !p[id] })); };
+
+  const toggleDetails = (id) => setDetailsOuverts((p) => ({ ...p, [id]: !p[id] }));
   const recharger = () => { setChargement(true); chargerTentatives(true); };
-  if (chargement && tentatives.length === 0) return (<div className={styles.page}><div className={styles.chargement}><div className={styles.spinner}></div><p>Chargement des tentatives...</p></div></div>);
+
+  if (chargement && tentatives.length === 0) {
+    return <div className={styles.page}><div className={styles.chargement}><div className={styles.spinner}></div><p>Chargement des tentatives...</p></div></div>;
+  }
+
   return (
     <div className={styles.page}>
-      <header className={styles.header}><div><Link href="/dashboard/formateur" className={styles.retour}>← Dashboard</Link><h1>Suivi des tentatives</h1><p className={styles.sousTitre}>Suivez les résultats et les activités enregistrées pendant les évaluations.</p></div><button type="button" className={styles.boutonActualiser} onClick={recharger} disabled={chargement}>↻ {chargement ? "Actualisation..." : "Actualiser"}</button></header>
-      {erreur && (<div className={styles.erreur}><strong>Erreur :</strong> {erreur}<button type="button" onClick={recharger}>Réessayer</button></div>)}
+      <header className={styles.header}>
+        <div>
+          <Link href="/dashboard/formateur" className={styles.retour}>← Dashboard</Link>
+          <h1>Suivi des tentatives</h1>
+          <p className={styles.sousTitre}>Qui fait le quiz en ce moment, qui est hors écran, qui a changé d&apos;onglet.</p>
+        </div>
+        <button type="button" className={styles.boutonActualiser} onClick={recharger} disabled={chargement}>↻ {chargement ? "Actualisation..." : "Actualiser"}</button>
+      </header>
+
+      {erreur && <div className={styles.erreur}><strong>Erreur :</strong> {erreur} <button type="button" onClick={recharger}>Réessayer</button></div>}
+
       <div className={styles.statistiques}>
-        <div className={styles.statCard}><span className={styles.statLabel}>Total tentatives</span><strong>{statistiques.total}</strong></div>
-        <div className={styles.statCard}><span className={styles.statLabel}>En cours</span><strong className={styles.statEnCours}>{statistiques.enCours}</strong></div>
-        <div className={styles.statCard}><span className={styles.statLabel}>Hors écran</span><strong className={styles.statHorsEcran}>{statistiques.horsEcran}</strong></div>
-        <div className={styles.statCard}><span className={styles.statLabel}>Signal ancien</span><strong>{statistiques.signalInactif}</strong></div>
-        <div className={styles.statCard}><span className={styles.statLabel}>Terminées</span><strong className={styles.statTerminees}>{statistiques.terminees}</strong></div>
-        <div className={styles.statCard}><span className={styles.statLabel}>Abandonnées</span><strong className={styles.abandonnees}>{statistiques.abandonnees}</strong></div>
-        <div className={styles.statCard}><span className={styles.statLabel}>Sorties enregistrées</span><strong className={styles.statSorties}>{statistiques.sorties}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>Total</span><strong>{stats.total}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>En cours</span><strong className={styles.statEnCours}>{stats.enCours}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>Hors écran</span><strong className={styles.statHorsEcran}>{stats.horsEcran}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>Hors ligne</span><strong>{stats.horsLigne}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>Terminées</span><strong className={styles.statTerminees}>{stats.terminees}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>Abandonnées</span><strong className={styles.abandonnees}>{stats.abandonnees}</strong></div>
+        <div className={styles.statCard}><span className={styles.statLabel}>Sorties</span><strong className={styles.statSorties}>{stats.sorties}</strong></div>
       </div>
-      <section className={styles.filtres}><div className={styles.filtreRecherche}><label htmlFor="recherche">Rechercher</label><input id="recherche" type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Apprenant, quiz, formation..." /></div><div className={styles.filtreFormation}><label htmlFor="formation">Formation</label><select id="formation" value={formationSelectionnee} onChange={(e) => setFormationSelectionnee(e.target.value)}><option value="toutes">Toutes les formations</option>{formations.map((f) => (<option key={f.id} value={f.id}>{f.titre}</option>))}</select></div></section>
-      <nav className={styles.filtresStatut}>{[["toutes", "Toutes"], ["en_cours", "En cours"], ["hors_ecran", "Hors écran"], ["signal_inactif", "Signal ancien"], ["terminee", "Terminées"], ["abandonnee", "Abandonnées"], ["avec_sorties", "Avec sorties"]].map(([value, label]) => (<button key={value} type="button" className={filtre === value ? styles.filtreActif : styles.filtreBouton} onClick={() => setFiltre(value)}>{label}</button>))}</nav>
-      <div className={styles.infoActualisation}><span className={styles.pointLive}></span>Actualisation automatique toutes les 5 secondes{actualisation && (<span className={styles.dateActualisation}>Dernière mise à jour : {dateLisible(actualisation)}</span>)}</div>
-      <p className={styles.sousTitre}>Le signal ancien indique une absence d&apos;activité enregistrée depuis plus de 30 secondes. Ce n&apos;est pas une preuve de déconnexion.</p>
+
+      <section className={styles.filtres}>
+        <div className={styles.filtreRecherche}><label htmlFor="recherche">Rechercher</label><input id="recherche" type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Apprenant, quiz, formation..." /></div>
+        <div className={styles.filtreFormation}><label htmlFor="formation">Formation</label><select id="formation" value={formationSelectionnee} onChange={(e) => setFormationSelectionnee(e.target.value)}><option value="toutes">Toutes les formations</option>{formations.map((f) => <option key={f.id} value={f.id}>{f.titre}</option>)}</select></div>
+      </section>
+
+      <nav className={styles.filtresStatut}>
+        {[["toutes", "Toutes"], ["en_cours", "En cours"], ["hors_ecran", "Hors écran"], ["hors_ligne", "Hors ligne"], ["terminee", "Terminées"], ["abandonnee", "Abandonnées"], ["avec_sorties", "Avec sorties"]].map(([value, label]) => (
+          <button key={value} type="button" className={filtre === value ? styles.filtreActif : styles.filtreBouton} onClick={() => setFiltre(value)}>{label}</button>
+        ))}
+      </nav>
+
+      <div className={styles.infoActualisation}><span className={styles.pointLive}></span>Actualisation automatique toutes les 5 secondes{actualisation && <span className={styles.dateActualisation}>Dernière mise à jour : {dateLisible(actualisation)}</span>}</div>
+      <p className={styles.sousTitre}>En cours = en train de faire le quiz MAINTENANT (activité il y a moins de 30 secondes). Hors ligne = a commencé mais plus d&apos;activité depuis plus de 30 secondes.</p>
+
       <section className={styles.liste}>
-        {tentativesFiltrees.length === 0 ? (<div className={styles.vide}><h3>Aucune tentative trouvée</h3><p>Les tentatives des apprenants apparaîtront ici dès qu&apos;ils commenceront un quiz.</p></div>) : (tentativesFiltrees.map((tentative) => {
-          const id = tentative.idTentative; const statut = statutTentative(tentative, maintenant); const score = obtenirScore(tentative); const resultat = resultatEvaluation(tentative); const certificatStatut = statutCertificat(tentative); const ouvert = Boolean(detailsOuverts[id]); const activites = Array.isArray(tentative.activites) ? tentative.activites : []; const nbQuestions = Number(tentative.nbQuestions || 0); const nbReponses = Number(tentative.nbReponses || 0); const progression = Math.max(0, Math.min(100, Number(tentative.progression || 0))); const sorties = Number(tentative.nbSorties || 0); const tempsHorsEcran = Number(tentative.tempsHorsEcran || 0); const reussie = resultat === "reussi" || resultat === "réussi" || resultat === "reussie" || resultat === "réussie";
+        {filtrees.length === 0 ? (
+          <div className={styles.vide}><h3>Aucune tentative trouvée</h3><p>{filtre === "en_cours" ? "Personne ne fait le quiz en ce moment." : "Les tentatives des apprenants apparaîtront ici dès qu'ils commenceront un quiz."}</p></div>
+        ) : filtrees.map((t) => {
+          const id = t.idTentative;
+          const statut = statutTentative(t, maintenant);
+          const score = obtenirScore(t);
+          const resultat = String(t.evaluation?.resultat || t.resultat || "").toLowerCase();
+          const reussie = ["reussi", "réussi", "reussie", "réussie"].includes(resultat);
+          const cert = t.certificat || {};
+          const certStatut = String(cert.statutCertificat || cert.statut || t.statutCertificat || "").toLowerCase();
+          const certValide = ["valide", "validé", "validee", "validée"].includes(certStatut);
+          const certRefuse = ["refuse", "refusé", "refusee", "refusée"].includes(certStatut);
+          const ouvert = Boolean(detailsOuverts[id]);
+          const activites = Array.isArray(t.activites) ? t.activites : [];
+          const nbQuestions = Number(t.nbQuestions || 0);
+          const nbReponses = Number(t.nbReponses || 0);
+          const progression = Math.max(0, Math.min(100, Number(t.progression || 0)));
+          const sorties = Number(t.nbSorties || 0);
+          const tempsHorsEcran = Number(t.tempsHorsEcran || 0);
+
           return (
             <article className={styles.tentativeCard} key={id}>
-              <div className={styles.cardHeader}><div className={styles.identite}><div className={styles.avatar}>{nomApprenant(tentative).slice(0, 1).toUpperCase()}</div><div><h3>{nomApprenant(tentative)}</h3><p>{tentative.apprenant?.email || ("ID apprenant : " + tentative.idApprenant)}</p></div></div><span className={styles.statut + " " + obtenirClasseStatut(statut)}>{statutTexte(statut)}</span></div>
-              {statut === "signal_inactif" && (<div className={styles.alerteSorties}><strong>Activité récente non détectée</strong><span>Aucune activité enregistrée depuis plus de 30 secondes. La connexion réelle n&apos;est pas confirmée.</span></div>)}
-              {statut === "hors_ecran" && (<div className={styles.alerteSorties}><strong>Dernier événement : sortie</strong><span>Le dernier événement indique une sortie. Un retour peut ne pas avoir été transmis.</span></div>)}
-              <div className={styles.infosQuiz}><div><span className={styles.label}>Quiz</span><strong>{tentative.quiz?.nomQuiz || "Quiz"}</strong></div><div><span className={styles.label}>Formation</span><strong>{tentative.formation?.titre || "Formation non identifiée"}</strong></div><div><span className={styles.label}>Module</span><strong>{tentative.moduleInfo?.titreModule || (tentative.quiz?.typeQuiz === "final" ? "Quiz final" : "Non précisé")}</strong></div><div><span className={styles.label}>Début</span><strong>{dateLisible(tentative.dateTentative)}</strong></div></div>
-              <div className={styles.progressionSection}><div className={styles.progressionEntete}><span>Progression des réponses</span><strong>{nbReponses} / {nbQuestions}</strong></div><div className={styles.progressionBarre}><div className={styles.progressionValeur} style={{ width: progression + "%" }}></div></div><span className={styles.progressionPourcentage}>{progression} %</span></div>
-              <div className={styles.resume}><div className={styles.resumeItem}><span>Sorties</span><strong>{sorties}</strong></div><div className={styles.resumeItem}><span>Temps hors écran</span><strong>{dureeLisible(tempsHorsEcran)}</strong></div><div className={styles.resumeItem}><span>Score</span><strong>{score !== null ? score + " %" : "En attente"}</strong></div><div className={styles.resumeItem}><span>Résultat</span><strong>{reussie ? "Réussi" : (resultat === "echoue" || resultat === "échoué" ? "Échoué" : "En attente")}</strong></div></div>
+              <div className={styles.cardHeader}>
+                <div className={styles.identite}>
+                  <div className={styles.avatar}>{nomApprenant(t).slice(0, 1).toUpperCase()}</div>
+                  <div><h3>{nomApprenant(t)} {statut === "en_cours" && <span className={styles.dotEnLigne}>● En ligne</span>}</h3><p>{t.apprenant?.email || `ID apprenant : ${t.idApprenant}`}</p></div>
+                </div>
+                <span className={`${styles.statut} ${classeStatut(statut)}`}>{statutTexte(statut)}</span>
+              </div>
+
+              {statut === "hors_ecran" && <div className={styles.alerteSorties}><strong>⚠️ Hors écran / Changement d&apos;onglet</strong><span>Le dernier événement = sortie. Pas de retour. Sorties : {sorties} · Temps hors écran : {dureeLisible(tempsHorsEcran)}</span></div>}
+              {statut === "hors_ligne" && <div className={styles.alerteSorties}><strong>Hors ligne</strong><span>Plus de 30 secondes sans activité. Dernière activité : {dateLisible(t.derniereActivite)}</span></div>}
+
+              <div className={styles.infosQuiz}>
+                <div><span className={styles.label}>Quiz</span><strong>{t.quiz?.nomQuiz || "Quiz"}</strong></div>
+                <div><span className={styles.label}>Formation</span><strong>{t.formation?.titre || "Formation non identifiée"}</strong></div>
+                <div><span className={styles.label}>Module</span><strong>{t.moduleInfo?.titreModule || (t.quiz?.typeQuiz === "final" ? "Quiz final" : "Non précisé")}</strong></div>
+                <div><span className={styles.label}>Début</span><strong>{dateLisible(t.dateTentative)}</strong></div>
+              </div>
+
+              <div className={styles.progressionSection}>
+                <div className={styles.progressionEntete}><span>Progression des réponses</span><strong>{nbReponses} / {nbQuestions}</strong></div>
+                <div className={styles.progressionBarre}><div className={styles.progressionValeur} style={{ width: `${progression}%` }}></div></div>
+                <span className={styles.progressionPourcentage}>{progression} %</span>
+              </div>
+
+              <div className={styles.resume}>
+                <div className={styles.resumeItem}><span>Sorties</span><strong>{sorties}</strong></div>
+                <div className={styles.resumeItem}><span>Temps hors écran</span><strong>{dureeLisible(tempsHorsEcran)}</strong></div>
+                <div className={styles.resumeItem}><span>Score</span><strong>{score !== null ? `${score} %` : "En attente"}</strong></div>
+                <div className={styles.resumeItem}><span>Résultat</span><strong>{reussie ? "Réussi" : resultat === "echoue" || resultat === "échoué" ? "Échoué" : "En attente"}</strong></div>
+              </div>
+
               {statut === "terminee" && reussie && (
                 <div className={styles.validationCertificat}>
-                  <div className={styles.validationEntete}><div><strong>Validation du certificat</strong><p>L&apos;apprenant a réussi son évaluation.{score !== null ? " Score obtenu : " + score + " %." : ""}</p></div>{certificatStatut === "valide" && (<span className={styles.certificatValide}>✓ Certificat validé</span>)}{certificatStatut === "refuse" && (<span className={styles.certificatRefuse}>Certificat refusé</span>)}{certificatStatut === "en_attente" && (<span className={styles.certificatAttente}>En attente de validation</span>)}</div>
-                  {certificatStatut === "en_attente" && (<div className={styles.actionsCertificat}><button type="button" className={styles.boutonValiderCertificat} onClick={() => traiterValidationCertificat(tentative, "valider")} disabled={Boolean(validationsEnCours[id])}>{validationsEnCours[id] ? "Traitement..." : "✓ Valider le certificat"}</button><button type="button" className={styles.boutonRefuserCertificat} onClick={() => traiterValidationCertificat(tentative, "refuser")} disabled={Boolean(validationsEnCours[id])}>Refuser</button></div>)}
-                  {messagesValidation[id] && (<p className={styles.messageValidation}>{messagesValidation[id]}</p>)}
+                  <div className={styles.validationEntete}>
+                    <div><strong>Validation du certificat</strong><p>L&apos;apprenant a réussi.{score !== null ? ` Score : ${score} %.` : ""}</p></div>
+                    {certValide && <span className={styles.certificatValide}>✓ Certificat validé</span>}
+                    {certRefuse && <span className={styles.certificatRefuse}>Certificat refusé</span>}
+                    {!certValide && !certRefuse && <span className={styles.certificatAttente}>En attente de validation</span>}
+                  </div>
+                  {!certValide && !certRefuse && (
+                    <div className={styles.actionsCertificat}>
+                      <button type="button" className={styles.boutonValiderCertificat} onClick={() => validerCertificat(t, "valider")} disabled={Boolean(validationsEnCours[id])}>{validationsEnCours[id] ? "Traitement..." : "✓ Valider le certificat"}</button>
+                      <button type="button" className={styles.boutonRefuserCertificat} onClick={() => validerCertificat(t, "refuser")} disabled={Boolean(validationsEnCours[id])}>Refuser</button>
+                    </div>
+                  )}
+                  {messagesValidation[id] && <p className={styles.messageValidation}>{messagesValidation[id]}</p>}
                 </div>
               )}
-              {sorties > 0 && (<div className={styles.alerteSorties}><strong>{sorties} sortie(s) enregistrée(s)</strong><span>Les changements d&apos;onglet ou de fenêtre figurent dans l&apos;historique.</span></div>)}
+
+              {sorties > 0 && <div className={styles.alerteSorties}><strong>{sorties} sortie(s) enregistrée(s)</strong><span>Les changements d&apos;onglet ou de fenêtre figurent dans l&apos;historique.</span></div>}
+
               <button type="button" className={styles.boutonDetails} onClick={() => toggleDetails(id)} aria-expanded={ouvert}>{ouvert ? "Masquer les activités ▲" : "Voir les activités ▼"}</button>
-              {ouvert && (<div className={styles.details}><h4>Historique des activités</h4>{activites.length === 0 ? (<p className={styles.aucuneActivite}>Aucune activité de surveillance enregistrée.</p>) : (<div className={styles.timeline}>{activites.map((a) => (<div className={styles.activite} key={a.idActivite}><div className={a.type === "retour" ? styles.pointRetour : styles.pointSortie}></div><div className={styles.activiteContenu}><strong>{typeActiviteTexte(a.type)}</strong><span>{dateLisible(a.dateActivite)}</span>{a.dureeSecondes !== null && a.dureeSecondes !== undefined && (<span>Durée : {dureeLisible(a.dureeSecondes)}</span>)}</div></div>))}</div>)}<div className={styles.detailsInformations}><p><strong>ID tentative :</strong> {id}</p><p><strong>ID quiz :</strong> {tentative.codeQuiz}</p><p><strong>Dernière activité enregistrée :</strong> {dateLisible(obtenirDateActivite(tentative))}</p><p><strong>Seuil de réussite :</strong> {tentative.quiz?.seuilReussite ?? 0} %</p><p><strong>Statut en base :</strong> {tentative.statut || "Non précisé"}</p><p><strong>État interprété :</strong> {statutTexte(statut)}</p><p><strong>Statut du certificat :</strong> {certificatStatut === "valide" ? "Validé" : certificatStatut === "refuse" ? "Refusé" : "En attente"}</p><p><strong>ID certificat :</strong> {obtenirIdCertificat(tentative) || "Aucun - sera créé à la validation"}</p></div></div>)}
+              {ouvert && (
+                <div className={styles.details}>
+                  <h4>Historique des activités</h4>
+                  {activites.length === 0 ? <p className={styles.aucuneActivite}>Aucune activité de surveillance enregistrée.</p> : (
+                    <div className={styles.timeline}>{activites.map((a, i) => (
+                      <div className={styles.activite} key={a.idActivite || i}><div className={a.type === "retour" ? styles.pointRetour : styles.pointSortie}></div><div className={styles.activiteContenu}><strong>{typeActiviteTexte(a.type)}</strong><span>{dateLisible(a.dateActivite)}</span>{a.dureeSecondes != null && <span>Durée : {dureeLisible(a.dureeSecondes)}</span>}</div></div>
+                    ))}</div>
+                  )}
+                  <div className={styles.detailsInformations}>
+                    <p><strong>ID tentative :</strong> {id}</p>
+                    <p><strong>ID quiz :</strong> {t.codeQuiz}</p>
+                    <p><strong>Dernière activité :</strong> {dateLisible(t.derniereActivite)}</p>
+                    <p><strong>Statut en base :</strong> {t.statut || "Non précisé"}</p>
+                    <p><strong>État interprété :</strong> {statutTexte(statut)}</p>
+                  </div>
+                </div>
+              )}
             </article>
           );
-        }))}
+        })}
       </section>
     </div>
   );

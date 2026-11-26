@@ -4,7 +4,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import styles from "../creer/creer.module.css";
+import styles from "./modifier.module.css";
 
 import { obtenirApiFormateur } from "@/lib/api";
 const API = obtenirApiFormateur();
