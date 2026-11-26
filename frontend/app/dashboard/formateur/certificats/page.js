@@ -23,23 +23,24 @@ export default function CertificatsFormateurPage() {
   const [filtre, setFiltre] = useState("tous");
 
   const charger = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) throw new Error("Session expiree. Veuillez vous reconnecter.");
-    // Backend : GET /certificats/formateur existe maintenant, sinon fallback GET /certificats
-    const urls = [API + "/certificats/formateur", API + "/certificats"];
-    let derniereErreur = null;
-    for (const url of urls) {
-      const response = await fetch(url, { headers: { Authorization: "Bearer " + token }, cache: "no-store" });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok) {
-        if (Array.isArray(data)) return data;
-        if (Array.isArray(data.certificats)) return data.certificats;
-        return [];
-      }
-      derniereErreur = new Error(`HTTP ${response.status} : ${data.message || "Impossible de charger les certificats."}`);
-      if (response.status !== 404) break;
+
+    // CONFORME A TON certificatRoutes.js :
+    // GET /api/formateur/certificats -> obtenirCertificats -> formateur = ses certificats
+    // On n'appelle PLUS /certificats/formateur en premier, c'est lui qui faisait le 400
+    const response = await fetch(API + "/certificats", {
+      headers: { Authorization: "Bearer " + token },
+      cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} : ${data.message || "Impossible de charger les certificats."}`);
     }
-    throw derniereErreur || new Error("Impossible de charger les certificats.");
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.certificats)) return data.certificats;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
   };
 
   useEffect(() => {
@@ -68,7 +69,8 @@ export default function CertificatsFormateurPage() {
     if (item.formation && item.formation.titre) return item.formation.titre;
     if (item.Formation && item.Formation.titre) return item.Formation.titre;
     if (item.titreFormation) return item.titreFormation;
-    return "Formation " + (item.numFormation || "");
+    if (item.titre) return item.titre;
+    return "Formation " + (item.numFormation || item.idFormation || "");
   };
   const obtenirNomComplet = (utilisateur) => {
     if (!utilisateur) return "Non renseigne";
@@ -78,7 +80,7 @@ export default function CertificatsFormateurPage() {
     const complet = [nom, prenom].filter(Boolean).join(" ");
     return complet || "Non renseigne";
   };
-  const obtenirStatut = (item) => item.statutCertificat || "en_attente";
+  const obtenirStatut = (item) => item.statutCertificat || item.statut || "en_attente";
   const obtenirLibelleStatut = (statut) => {
     if (statut === "validee") return "Valide";
     if (statut === "annulee") return "Refuse";
@@ -86,10 +88,10 @@ export default function CertificatsFormateurPage() {
   };
 
   const traiterCertificat = (idCertificat, decision) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) { setErreur("Session expiree. Veuillez vous reconnecter."); return; }
     if (!idCertificat || idCertificat === "undefined") { setErreur("Identifiant de certificat invalide. Recharge la page."); return; }
-    // CONFORME BACKEND : PATCH /statut + statutCertificat
+    // CONFORME A TON certificatRoutes.js : PATCH /:id/statut + { statutCertificat }
     const statutCertificat = decision === "valider" ? "validee" : "annulee";
     setTraitement(idCertificat); setErreur(""); setSucces("");
     fetch(API + "/certificats/" + encodeURIComponent(idCertificat) + "/statut", {
@@ -163,7 +165,7 @@ export default function CertificatsFormateurPage() {
             {certificatsFiltres.map((item, index) => {
               const idCertificat = getIdCertificat(item);
               const titre = obtenirTitre(item);
-              const nomApprenant = obtenirNomComplet(item.apprenant || item.Apprenant || item.utilisateur);
+              const nomApprenant = obtenirNomComplet(item.apprenant || item.Apprenant || item.utilisateur || item.Utilisateur);
               const statut = obtenirStatut(item);
               const enCours = traitement === idCertificat;
               return (
@@ -175,7 +177,7 @@ export default function CertificatsFormateurPage() {
                     </div>
                     <div className={styles.infoGrid}>
                       <div className={styles.infoItem}><span className={styles.label}>APPRENANT</span><strong>{nomApprenant}</strong></div>
-                      <div className={styles.infoItem}><span className={styles.label}>DATE</span><strong>{formaterDate(item.dateObtention)}</strong></div>
+                      <div className={styles.infoItem}><span className={styles.label}>DATE</span><strong>{formaterDate(item.dateObtention || item.dateCreation)}</strong></div>
                       <div className={styles.infoItem}><span className={styles.label}>REFERENCE</span><strong>{item.numeroCertificat || idCertificat || "Non disponible"}</strong></div>
                     </div>
                     {statut === "en_attente" ? (
