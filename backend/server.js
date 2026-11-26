@@ -21,7 +21,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Chaque fichier est chargé UNE SEULE FOIS, jamais 2 fois le même
 const routes = [
   ["authRoutes", "./routes/authRoutes", "/api/auth"],
   ["apprenantRoutes", "./routes/apprenantRoutes", "/api/apprenant"],
@@ -31,16 +30,6 @@ const routes = [
   ["formateurRoutes", "./routes/formateurRoutes", "/api/formateur"],
   ["formationRoutes", "./routes/formationRoutes", "/api/formateur/formations"],
   ["tentativeQuizRoutes", "./routes/tentativeQuizRoutes", "/api/tentatives"],
-
-  // =====================================================
-  // AJOUT — CERTIFICATS, sans rien enlever au-dessus
-  // Il faut les 3 montages, sinon 404 :
-  // - Formateur : /api/formateur/certificats/formateur
-  //   = obtenirApiFormateur() + "/certificats/formateur"
-  // - Apprenant / Admin : /api/certificats
-  // - Apprenant : /api/apprenant/certificats
-  // C'est le même fichier, Express le monte 3 fois, c'est normal.
-  // =====================================================
   ["certificatRoutesFormateur", "./routes/certificatRoutes", "/api/formateur/certificats"],
   ["certificatRoutes", "./routes/certificatRoutes", "/api/certificats"],
   ["certificatRoutesApprenant", "./routes/certificatRoutes", "/api/apprenant/certificats"],
@@ -49,11 +38,9 @@ const routes = [
 for (const [name, routePath, url] of routes) {
   try {
     const router = require(routePath);
-
     if (typeof router !== "function") {
       throw new Error(`${name} n'exporte pas un router Express valide.`);
     }
-
     app.use(url, router);
     console.log(`${name} enregistré sur ${url}`);
   } catch (error) {
@@ -63,37 +50,45 @@ for (const [name, routePath, url] of routes) {
 }
 
 app.get("/", (req, res) => {
-  res.status(200).json({
-    message: "Backend GestionFormation fonctionne !"
-  });
+  res.status(200).json({ message: "Backend GestionFormation fonctionne !" });
 });
 
 app.use((req, res) => {
-  res.status(404).json({
-    message: "Route introuvable."
-  });
+  res.status(404).json({ message: "Route introuvable." });
 });
 
 app.use((error, req, res, next) => {
   console.error("Erreur serveur :", error);
-  res.status(500).json({
-    message: "Erreur interne du serveur.",
-    erreur: error.message
-  });
+  res.status(500).json({ message: "Erreur interne du serveur.", erreur: error.message });
 });
 
 const PORT = process.env.PORT || 5000;
 
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const demarrerServeur = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("Connexion MySQL réussie !");
-    app.listen(PORT, () => {
-      console.log(`Serveur démarré sur http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error("Erreur de démarrage :", error.message);
-    process.exit(1);
+  // Le serveur écoute TOUT DE SUITE, même si la base n'est pas encore prête
+  // Comme ça Render voit que c'est Live, et on retry la base en fond
+  app.listen(PORT, () => {
+    console.log(`Serveur démarré sur http://localhost:${PORT}`);
+  });
+
+  // Retry MySQL : 15 fois, toutes les 5 secondes = 75 secondes
+  // Clever Cloud a le temps de se réveiller
+  for (let tentative = 1; tentative <= 15; tentative++) {
+    try {
+      await sequelize.authenticate();
+      console.log(`Connexion MySQL réussie ! (tentative ${tentative})`);
+      return;
+    } catch (error) {
+      console.error(`Tentative MySQL ${tentative}/15 échouée : ${error.message}`);
+      if (tentative === 15) {
+        console.error("MySQL toujours injoignable après 15 tentatives. Le serveur reste en ligne, il réessaiera à la prochaine requête.");
+        // On NE FAIT PAS process.exit(1) -> Render reste Live
+        return;
+      }
+      await attendre(5000);
+    }
   }
 };
 
