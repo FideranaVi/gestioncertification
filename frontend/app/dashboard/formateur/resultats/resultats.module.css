@@ -2,7 +2,7 @@
 .dashboard {
   display: flex;
   min-height: 100vh;
-  background: #eff6ff;
+  background: #f4f8f5;
   color: #111827;
 }
 
@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eff6ff;
+  background: #f4f8f5;
 }
 
 .loadingState {
@@ -27,8 +27,8 @@
   width: 38px;
   height: 38px;
   border-radius: 9999px;
-  border: 3px solid #dbeafe;
-  border-top-color: #2563eb;
+  border: 3px solid #d1fae5;
+  border-top-color: #16834a;
   animation: spin 0.8s linear infinite;
 }
 
@@ -41,7 +41,7 @@
   width: 264px;
   min-width: 264px;
   background: #fff;
-  border-right: 1px solid #e8eef7;
+  border-right: 1px solid #eef2f0;
   padding: 22px 16px;
   display: flex;
   flex-direction: column;
@@ -62,7 +62,7 @@
   width: 42px;
   height: 42px;
   border-radius: 11px;
-  background: #2563eb;
+  background: #16834a;
   color: #fff;
   display: flex;
   align-items: center;
@@ -75,7 +75,7 @@
   margin: 0;
   font-size: 17px;
   font-weight: 800;
-  color: #1e3a5f;
+  color: #183b2b;
 }
 
 .logo span {
@@ -110,11 +110,11 @@
 }
 
 .navLink:hover {
-  background: #eff6ff;
+  background: #f4f8f5;
 }
 
 .navLink.active {
-  background: #2563eb;
+  background: #16834a;
   color: #fff;
 }
 
@@ -143,7 +143,7 @@
   gap: 8px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  color: #1e3a5f;
+  color: #183b2b;
   text-decoration: none;
   font-weight: 700;
   font-size: 13px;
@@ -152,8 +152,8 @@
 }
 
 .returnButton:hover {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #16834a;
+  border-color: #16834a;
   color: #fff;
 }
 
@@ -204,7 +204,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.1px;
-  color: #2563eb;
+  color: #16834a;
   text-transform: uppercase;
 }
 
@@ -212,7 +212,7 @@
   margin: 6px 0 0;
   font-size: 28px;
   font-weight: 800;
-  color: #1e3a5f;
+  color: #183b2b;
 }
 
 .topbarRight {
@@ -224,7 +224,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #2563eb;
+  background: #16834a;
   color: #fff;
   text-decoration: none;
   font-weight: 700;
@@ -234,7 +234,7 @@
 }
 
 .primaryButton:hover {
-  background: #1d4ed8;
+  background: #116638;
 }
 
 .content {
@@ -264,7 +264,7 @@
 
 .statCard {
   background: #fff;
-  border: 1px solid #e8eef7;
+  border: 1px solid #eef2f0;
   border-radius: 14px;
   padding: 18px;
   display: flex;
@@ -286,7 +286,7 @@
 
 .statCard strong {
   font-size: 22px;
-  color: #1e3a5f;
+  color: #183b2b;
   line-height: 1.1;
 }
 
@@ -307,13 +307,13 @@
 
 .blueIcon { background: #dbeafe; color: #1e40af; }
 .orangeIcon { background: #ffedd5; color: #9a3412; }
-.greenIcon { background: #dbeafe; color: #1e40af; }
+.greenIcon { background: #dcfce7; color: #166534; }
 .purpleIcon { background: #ede9fe; color: #5b21b6; }
 
 /* ===== TABLE SECTION ===== */
 .tableSection {
   background: #fff;
-  border: 1px solid #e8eef7;
+  border: 1px solid #eef2f0;
   border-radius: 16px;
   padding: 22px;
   display: flex;
@@ -333,19 +333,19 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.1px;
-  color: #2563eb;
+  color: #16834a;
 }
 
 .sectionHeading h2 {
   margin: 6px 0 0;
   font-size: 20px;
   font-weight: 800;
-  color: #1e3a5f;
+  color: #183b2b;
 }
 
 .countBadge {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #e6f4ec;
+  color: #166534;
   font-size: 13px;
   font-weight: 700;
   padding: 8px 12px;
@@ -423,7 +423,7 @@
   margin: 0;
   font-size: 19px;
   font-weight: 800;
-  color: #1e3a5f;
+  color: #183b2b;
 }
 
 .emptyState p {
@@ -433,7 +433,7 @@
 }
 
 .emptyLink {
-  background: #2563eb;
+  background: #16834a;
   color: #fff;
   text-decoration: none;
   font-weight: 700;
@@ -496,7 +496,7 @@
 }
 
 .apprenantCell strong {
-  color: #1e3a5f;
+  color: #183b2b;
   font-size: 13px;
   white-space: nowrap;
 }
@@ -511,7 +511,7 @@
   height: 38px;
   min-width: 38px;
   border-radius: 9999px;
-  background: #2563eb;
+  background: #16834a;
   color: #fff;
   display: flex;
   align-items: center;
@@ -521,8 +521,8 @@
 }
 
 .tentativeBadge {
-  background: #eff6ff;
-  color: #1e40af;
+  background: #f4f8f5;
+  color: #166534;
   font-size: 12px;
   font-weight: 700;
   padding: 5px 9px;
@@ -538,7 +538,7 @@
 }
 
 .scoreCell strong {
-  color: #1e3a5f;
+  color: #183b2b;
   font-size: 13px;
 }
 
@@ -556,7 +556,7 @@
 
 .miniProgressOk {
   height: 100%;
-  background: #2563eb;
+  background: #16a34a;
 }
 
 .miniProgressKo {
@@ -576,8 +576,8 @@
 }
 
 .statusReady {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .statusPending {
