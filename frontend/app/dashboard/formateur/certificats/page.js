@@ -17,7 +17,6 @@ export default function CertificatsFormateurPage() {
   const [traitement, setTraitement] = useState(null);
   const [filtre, setFiltre] = useState("tous");
   const [recherche, setRecherche] = useState("");
-  const [debug, setDebug] = useState("");
 
   const pick = (...vals) => {
     for (const v of vals) {
@@ -63,30 +62,25 @@ export default function CertificatsFormateurPage() {
     return Number.isNaN(n) ? null : n;
   };
 
-  // PAS DE setState ICI - elle retourne juste les données
   const charger = async () => {
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) throw new Error("Session expiree. Veuillez vous reconnecter.");
     const headers = { Authorization: "Bearer " + token };
 
-    let dataCert = null;
-    let dataTent = null;
-    let errTent = "";
     const resCert = await fetch(API + "/certificats", { headers, cache: "no-store" });
-    dataCert = await resCert.json().catch(() => []);
+    const dataCert = await resCert.json().catch(() => []);
     if (!resCert.ok) throw new Error(`Certificats HTTP ${resCert.status}`);
 
+    let dataTent = [];
     try {
       const resTent = await fetch(API + "/tentatives", { headers, cache: "no-store" });
       dataTent = await resTent.json().catch(() => []);
-      if (!resTent.ok) errTent = `Tentatives HTTP ${resTent.status}`;
     } catch (e) {
-      errTent = "Tentatives : " + e.message;
+      dataTent = [];
     }
 
     const certificats = Array.isArray(dataCert) ? dataCert : dataCert?.certificats || dataCert?.data || dataCert?.rows || [];
     const tentatives = Array.isArray(dataTent) ? dataTent : dataTent?.tentatives || dataTent?.data || dataTent?.rows || [];
-    const debugText = `Reçu : ${certificats.length} certificat(s) | ${tentatives.length} tentative(s) ${errTent ? "| " + errTent : ""} | API=${API}`;
 
     const lignesFusion = [];
 
@@ -152,16 +146,15 @@ export default function CertificatsFormateurPage() {
       });
     });
 
-    return { lignes: lignesFusion, debug: debugText };
+    return lignesFusion;
   };
 
   useEffect(() => {
     let actif = true;
     charger()
-      .then(({ lignes: liste, debug: dbg }) => {
+      .then((liste) => {
         if (!actif) return;
         setLignes(liste);
-        setDebug(dbg);
         setChargement(false);
       })
       .catch((e) => {
@@ -178,9 +171,8 @@ export default function CertificatsFormateurPage() {
     setErreur("");
     setSucces("");
     charger()
-      .then(({ lignes: liste, debug: dbg }) => {
+      .then((liste) => {
         setLignes(liste);
-        setDebug(dbg);
         setChargement(false);
       })
       .catch((e) => {
@@ -225,9 +217,8 @@ export default function CertificatsFormateurPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Impossible de traiter.");
       setSucces(data.message || (decision === "valider" ? "Certificat validé." : "Certificat refusé."));
-      const { lignes: nl, debug: dbg } = await charger();
+      const nl = await charger();
       setLignes(nl);
-      setDebug(dbg);
     } catch (e) {
       setErreur(e.message);
     } finally {
@@ -276,7 +267,6 @@ export default function CertificatsFormateurPage() {
         </header>
         {erreur && <div className={styles.error}><span>!</span>{erreur}</div>}
         {succes && <div className={styles.success}><span>OK</span>{succes}</div>}
-        {debug && <div className={styles.debug}>{debug}</div>}
         <section className={styles.summary}>
           <div className={styles.summaryStat}><span>Apprenants</span><strong>{lignes.length}</strong></div>
           <div className={styles.summaryStat}><span>Réussis</span><strong>{nbReussis}</strong></div>
@@ -301,7 +291,7 @@ export default function CertificatsFormateurPage() {
             </thead>
             <tbody>
               {filtrees.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: "center", padding: "28px", color: "#65676b" }}>Aucune ligne à afficher. Regarde la ligne debug jaune en haut.</td></tr>
+                <tr><td colSpan={8} style={{ textAlign: "center", padding: "28px", color: "#65676b" }}>Aucune ligne à afficher.</td></tr>
               ) : (
                 filtrees.map((ligne) => {
                   const enCours = traitement === ligne.key;
