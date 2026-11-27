@@ -204,8 +204,6 @@ const connexion = async (req, res) => {
     });
   }
 };
-
-// AJOUT SEULEMENT : Connexion avec Google
 const connexionGoogle = async (req, res) => {
   try {
     const { credential } = req.body;
@@ -224,7 +222,6 @@ const connexionGoogle = async (req, res) => {
       throw new Error("JWT_SECRET non configuré.");
     }
 
-    // Vérifie que le token vient vraiment de Google
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID
@@ -239,18 +236,17 @@ const connexionGoogle = async (req, res) => {
       });
     }
 
-    // Nom / prénom depuis Google
+
     const nomNormalise = String(payload.family_name || payload.name || "Utilisateur").trim().slice(0, 50);
     const prenomNormalise = String(payload.given_name || payload.name || "Google").trim().slice(0, 50);
 
-    // Cherche si l'utilisateur existe déjà avec SON propre mail
+
     let utilisateur = await Utilisateur.findOne({
       where: { email: emailNormalise }
     });
 
     if (!utilisateur) {
-      // Nouveau compte -> Apprenant automatiquement (style SoloLearn)
-      // Mot de passe aléatoire car il se connecte avec Google
+
       const pwdHash = await bcrypt.hash(Math.random().toString(36) + Date.now(), 10);
 
       utilisateur = await Utilisateur.create({

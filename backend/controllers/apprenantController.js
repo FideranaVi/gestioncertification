@@ -1434,10 +1434,6 @@ const arreterSuivreFormation = async (req, res) => {
   }
 };
 
-// ======================================================
-// EXPORTATIONS
-// ======================================================
-
 module.exports = {
   obtenirProfil,
   obtenirCatalogueFormations,

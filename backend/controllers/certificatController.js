@@ -149,11 +149,8 @@ exports.obtenirCertificats = async (req, res) => {
   }
 };
 
-// =====================================================
-// NOUVEAU — OBTENIR CERTIFICATS FORMATEUR
-// GET /certificats/formateur
-// C'est cette fonction qui manquait et qui donnait 400
-// =====================================================
+// OBTENIR CERTIFICATS FORMATEUR
+
 exports.obtenirCertificatsFormateur = async (req, res) => {
   try {
     const role = obtenirRole(req);
