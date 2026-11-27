@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
   BarChart3,
   Star,
   CheckCircle2,
@@ -16,8 +15,8 @@ import {
   XCircle,
 } from "lucide-react";
 import styles from "./resultats.module.css";
-
 import { obtenirApiFormateur } from "@/lib/api";
+
 const API = obtenirApiFormateur();
 
 function obtenirToken() {
@@ -25,50 +24,16 @@ function obtenirToken() {
   return sessionStorage.getItem("token") || localStorage.getItem("token");
 }
 
-async function apiRequest(endpoint, signal) {
-  const token = obtenirToken();
-  if (!token) throw new Error("Session expirée");
-  const res = await fetch(`${API}${endpoint}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || "Erreur serveur");
-  return data;
-}
-
-// ✅ Structure réelle de ton evaluationController
-function normaliserEvaluation(e) {
-  const tentative = e.tentative || {};
-  const apprenant = tentative.apprenant || {};
-  const quiz = tentative.quiz || {};
-  const moduleInfo = quiz.module || {};
-  const formation = moduleInfo.formation || {};
-
-  const score = Number(tentative.score ?? e.score ?? e.note ?? 0);
-  const seuil = Number(quiz.seuilReussite ?? 10);
-
-  return {
-    id: e.codeEvaluation,
-    prenom: apprenant.prenom || "",
-    nom: apprenant.nom || "",
-    email: apprenant.email || "",
-    formation: formation.titre || "—",
-    numFormation: formation.numFormation,
-    quiz: quiz.nomQuiz || "Évaluation finale",
-    module: moduleInfo.titreModule || "",
-    score,
-    noteMax: 20,
-    seuil,
-    statut: e.resultat || (score >= seuil ? "reussi" : "echoue"),
-    date: e.dateEvaluation,
-    numTentative: tentative.codeTentative || tentative.idTentative || 1,
-  };
-}
+const pick = (...vals) => {
+  for (const v of vals) {
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return null;
+};
 
 export default function ResultatsPage() {
   const router = useRouter();
-  const [evaluations, setEvaluations] = useState([]);
+  const [lignes, setLignes] = useState([]);
   const [certificats, setCertificats] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
@@ -76,60 +41,140 @@ export default function ResultatsPage() {
   const [filtreFormation, setFiltreFormation] = useState("toutes");
   const [filtreStatut, setFiltreStatut] = useState("tous");
   const [tri, setTri] = useState("date-desc");
-  const monteRef = useRef(true);
 
-  const charger = useCallback(
-    async (signal) => {
+  const normaliserLigne = (raw, type) => {
+    // raw peut être une tentative OU une évaluation
+    const t = raw.tentative || raw.Tentative || raw;
+    const apprenantObj = t.apprenant || t.Apprenant || t.utilisateur || t.Utilisateur || raw.apprenant || {};
+    const quizObj = t.quiz || t.Quiz || raw.quiz || {};
+    const moduleObj = quizObj.module || quizObj.Module || {};
+    const formationObj = moduleObj.formation || moduleObj.Formation || t.formation || t.Formation || raw.formation || {};
+
+    const nom = pick(apprenantObj.nom, apprenantObj.NOM, raw.nom, raw.nomApprenant, t.nom);
+    const prenom = pick(apprenantObj.prenom, apprenantObj.Prenom, raw.prenom, raw.prenomApprenant, t.prenom);
+    const email = pick(apprenantObj.email, apprenantObj.mail, raw.email, raw.emailApprenant);
+
+    const formation = pick(formationObj.titre, formationObj.titreFormation, formationObj.nomFormation, t.titreFormation, raw.titreFormation, t.nomFormation) || "Formation";
+    const quiz = pick(quizObj.nomQuiz, quizObj.titre, quizObj.nom, t.nomQuiz, t.titreQuiz, t.codeQuiz, t.code_quiz, raw.nomQuiz) || "Quiz";
+    const moduleTitre = pick(moduleObj.titreModule, moduleObj.titre, t.titreModule) || "";
+
+    const scoreRaw = pick(t.score, t.note, raw.score, raw.note, raw.evaluation?.score, t.evaluation?.score);
+    const score = scoreRaw === null ? null : Number(scoreRaw);
+    const scoreOk = score !== null && !Number.isNaN(score);
+
+    // Score peut être /20 ou /100 -> on normalise en /20 pour l'affichage
+    let score20 = scoreOk ? score : 0;
+    if (scoreOk && score > 20) score20 = Math.round((score / 100) * 20 * 10) / 10;
+
+    const resultatBrut = String(pick(raw.resultat, raw.evaluation?.resultat, t.resultat, t.statut, raw.statut) || "").toLowerCase();
+    const reussie = ["reussi", "réussi", "reussie", "réussie", "success", "passed", "valide"].includes(resultatBrut) || (scoreOk && score20 >= 10);
+    const echouee = ["echoue", "échoué", "echec", "échec", "failed"].includes(resultatBrut) || (scoreOk && score20 < 10);
+
+    return {
+      id: pick(raw.codeEvaluation, raw.idEvaluation, t.idTentative, t.id, raw.id, raw.codeTentative) || `${type}-${Math.random()}`,
+      prenom: prenom ? String(prenom).charAt(0).toUpperCase() + String(prenom).slice(1).toLowerCase() : "",
+      nom: nom ? String(nom).toUpperCase() : "Apprenant",
+      email: email || "",
+      formation: String(formation),
+      quiz: String(quiz),
+      module: String(moduleTitre),
+      score: score20,
+      scoreBrut: score,
+      noteMax: 20,
+      statut: reussie ? "reussi" : echouee ? "echoue" : "en_cours",
+      date: pick(raw.dateEvaluation, raw.dateCreation, t.dateTentative, t.dateCreation, t.createdAt, t.derniereActivite, raw.createdAt),
+      numTentative: pick(t.codeTentative, t.idTentative, t.id, raw.codeTentative) || 1,
+      nbSorties: pick(t.nbSortiesEcran, t.nbSorties, t.sorties) ?? 0,
+    };
+  };
+
+  const charger = async () => {
+    const token = obtenirToken();
+    if (!token) throw new Error("Session expirée");
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const fetchSafe = async (endpoint) => {
       try {
-        const [evalData, certData] = await Promise.all([
-          apiRequest("/evaluations", signal),
-          apiRequest("/certificats", signal).catch(() => []),
-        ]);
-        if (!monteRef.current) return;
-        const listeEval = Array.isArray(evalData) ? evalData : evalData.evaluations || evalData.data || [];
-        setEvaluations(listeEval.map(normaliserEvaluation));
-        const listeCert = Array.isArray(certData) ? certData : certData.certificats || certData.data || [];
-        setCertificats(listeCert);
-        setErreur("");
-      } catch (e) {
-        if (e?.name === "AbortError" || !monteRef.current) return;
-        if (e.message === "Session expirée") router.replace("/connexion");
-        else setErreur(e.message);
-      } finally {
-        if (monteRef.current) setChargement(false);
+        const res = await fetch(`${API}${endpoint}`, { headers, cache: "no-store" });
+        const data = await res.json().catch(() => []);
+        if (!res.ok) return [];
+        if (Array.isArray(data)) return data;
+        return data.evaluations || data.tentatives || data.certificats || data.data || data.rows || [];
+      } catch {
+        return [];
       }
-    },
-    [router]
-  );
+    };
+
+    const [tentatives, evaluations, certs] = await Promise.all([
+      fetchSafe("/tentatives"),
+      fetchSafe("/evaluations"),
+      fetchSafe("/certificats"),
+    ]);
+
+    // On prend TOUT : tentatives d'abord, puis évaluations non déjà vues
+    const lignesFusion = [];
+    const vus = new Set();
+
+    tentatives.forEach((t) => {
+      const ligne = normaliserLigne(t, "tent");
+      const cle = String(pick(t.idTentative, t.id, t.codeTentative) || ligne.id);
+      if (vus.has(cle)) return;
+      vus.add(cle);
+      lignesFusion.push(ligne);
+    });
+
+    evaluations.forEach((e) => {
+      const ligne = normaliserLigne(e, "eval");
+      const cle = String(pick(e.codeEvaluation, e.idEvaluation, e.tentative?.idTentative, e.id) || ligne.id);
+      // Si cette tentative est déjà là, on ne double pas
+      const idTent = e.tentative?.idTentative || e.idTentative;
+      if (idTent && vus.has(String(idTent))) return;
+      if (vus.has(cle)) return;
+      vus.add(cle);
+      lignesFusion.push(ligne);
+    });
+
+    return { lignes: lignesFusion, certs };
+  };
 
   useEffect(() => {
-    monteRef.current = true;
-    const controller = new AbortController();
+    let actif = true;
     if (!obtenirToken()) {
       router.replace("/connexion");
-      return () => controller.abort();
+      return;
     }
-    const timeoutId = setTimeout(() => charger(controller.signal), 0);
-    return () => {
-      monteRef.current = false;
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [charger, router]);
+    charger()
+      .then(({ lignes: liste, certs }) => {
+        if (!actif) return;
+        setLignes(liste);
+        setCertificats(certs);
+        setChargement(false);
+      })
+      .catch((e) => {
+        if (!actif) return;
+        if (e.message === "Session expirée") router.replace("/connexion");
+        else setErreur(e.message);
+        setChargement(false);
+      });
+    return () => { actif = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const formations = useMemo(
-    () => [...new Set(evaluations.map((e) => e.formation).filter((f) => f !== "—"))],
-    [evaluations]
+    () => [...new Set(lignes.map((e) => e.formation).filter(Boolean))].sort(),
+    [lignes]
   );
 
   const filtrees = useMemo(() => {
-    const liste = evaluations.filter((e) => {
-      const okRecherche = `${e.prenom} ${e.nom} ${e.email} ${e.formation} ${e.quiz}`
-        .toLowerCase()
-        .includes(recherche.toLowerCase());
-      const okFormation = filtreFormation === "toutes" || e.formation === filtreFormation;
-      const okStatut = filtreStatut === "tous" || e.statut === filtreStatut;
-      return okRecherche && okFormation && okStatut;
+    const terme = recherche.trim().toLowerCase();
+    const liste = lignes.filter((e) => {
+      if (terme) {
+        const hay = `${e.prenom} ${e.nom} ${e.email} ${e.formation} ${e.quiz} ${e.module}`.toLowerCase();
+        if (!hay.includes(terme)) return false;
+      }
+      if (filtreFormation !== "toutes" && e.formation !== filtreFormation) return false;
+      if (filtreStatut !== "tous" && e.statut !== filtreStatut) return false;
+      return true;
     });
     return [...liste].sort((a, b) => {
       if (tri === "score-desc") return b.score - a.score;
@@ -137,11 +182,11 @@ export default function ResultatsPage() {
       if (tri === "nom-asc") return `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`);
       return new Date(b.date || 0) - new Date(a.date || 0);
     });
-  }, [evaluations, recherche, filtreFormation, filtreStatut, tri]);
+  }, [lignes, recherche, filtreFormation, filtreStatut, tri]);
 
-  const moyenne = filtrees.length ? (filtrees.reduce((s, e) => s + e.score, 0) / filtrees.length).toFixed(1) : "0";
+  const moyenne = filtrees.length ? (filtrees.reduce((s, e) => s + e.score, 0) / filtrees.length).toFixed(1) : "0.0";
   const reussis = filtrees.filter((e) => e.statut === "reussi").length;
-  const echoues = filtrees.length - reussis;
+  const echoues = filtrees.filter((e) => e.statut === "echoue").length;
   const tauxReussite = filtrees.length ? Math.round((reussis / filtrees.length) * 100) : 0;
 
   const fermerSession = () => {
@@ -150,7 +195,22 @@ export default function ResultatsPage() {
     router.replace("/connexion");
   };
 
-  if (chargement)
+  const recharger = () => {
+    setChargement(true);
+    setErreur("");
+    charger()
+      .then(({ lignes: liste, certs }) => {
+        setLignes(liste);
+        setCertificats(certs);
+        setChargement(false);
+      })
+      .catch((e) => {
+        setErreur(e.message);
+        setChargement(false);
+      });
+  };
+
+  if (chargement) {
     return (
       <div className={styles.page}>
         <div className={styles.loadingState}>
@@ -159,35 +219,27 @@ export default function ResultatsPage() {
         </div>
       </div>
     );
+  }
 
   return (
     <div className={styles.dashboard}>
-      {/* ===== SIDEBAR : RÉSULTATS SEULEMENT + RETOUR DASHBOARD ===== */}
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <div className={styles.logoIcon}>L</div>
-          <div>
-            <h2>Learning Pro</h2>
-            <span>Espace formateur</span>
-          </div>
+          <div><h2>Learning Pro</h2><span>Espace formateur</span></div>
         </div>
-
         <div className={styles.sidebarLabel}>MENU PRINCIPAL</div>
         <nav className={styles.navigation}>
-          {/* ✅ SEUL LIEN DE CETTE PAGE */}
           <Link href="/dashboard/formateur/resultats" className={`${styles.navLink} ${styles.active}`}>
             <BarChart3 size={19} /> Résultats
           </Link>
         </nav>
-
-        {/* ✅ RETOUR AU TABLEAU DE BORD */}
         <div className={styles.sidebarReturn}>
           <Link href="/dashboard/formateur" className={styles.returnButton}>
             <ArrowLeft size={18} /> Retour au tableau de bord
           </Link>
           <p>Retourne à ton espace principal formateur pour gérer formations, modules et quiz.</p>
         </div>
-
         <div className={styles.sidebarBottom}>
           <button type="button" className={styles.logoutButton} onClick={fermerSession}>
             <LogOut size={18} /> Déconnexion
@@ -202,6 +254,7 @@ export default function ResultatsPage() {
             <h1>Résultats des apprenants</h1>
           </div>
           <div className={styles.topbarRight}>
+            <button type="button" className={styles.primaryButton} onClick={recharger}>Actualiser</button>
             <Link href="/dashboard/formateur" className={styles.primaryButton}>
               <ArrowLeft size={18} /> Tableau de bord
             </Link>
@@ -211,8 +264,7 @@ export default function ResultatsPage() {
         <div className={styles.content}>
           {erreur && (
             <div className={styles.errorMessage}>
-              <XCircle size={18} />
-              {erreur}
+              <XCircle size={18} /> {erreur}
             </div>
           )}
 
@@ -273,40 +325,35 @@ export default function ResultatsPage() {
               </select>
             </div>
 
-            {filtrees.length === 0 ? (
-              <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}><Trophy size={32} /></div>
-                <h3>Aucun résultat</h3>
-                <p>Aucun apprenant n&apos;a encore passé d&apos;évaluation.</p>
-                <Link href="/dashboard/formateur" className={styles.emptyLink}>Retour au tableau de bord</Link>
-              </div>
-            ) : (
-              <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Apprenant</th>
-                      <th>Formation</th>
-                      <th>Évaluation</th>
-                      <th>Tentative</th>
-                      <th>Date</th>
-                      <th>Score</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtrees.map((e) => {
+            {/* TABLEAU TOUJOURS AFFICHÉ */}
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Apprenant</th>
+                    <th>Formation</th>
+                    <th>Évaluation</th>
+                    <th>Tentative</th>
+                    <th>Date</th>
+                    <th>Score</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtrees.length === 0 ? (
+                    <tr><td colSpan={7} style={{ textAlign: "center", padding: "28px", color: "#65676b" }}>
+                      Aucun résultat pour cette recherche / ce filtre. Essaie de vider la recherche ou de mettre &quot;Toutes les formations&quot;.
+                    </td></tr>
+                  ) : (
+                    filtrees.map((e) => {
                       const reussi = e.statut === "reussi";
-                      const pourcentage = Math.round((e.score / e.noteMax) * 100);
+                      const pourcentage = Math.max(0, Math.min(100, Math.round((e.score / e.noteMax) * 100)));
                       return (
                         <tr key={e.id}>
                           <td>
                             <div className={styles.apprenantCell}>
                               <div className={styles.avatar}>{String(e.prenom || e.nom || "?").charAt(0).toUpperCase()}</div>
-                              <div>
-                                <strong>{e.prenom} {e.nom}</strong>
-                                <span>{e.email || "—"}</span>
-                              </div>
+                              <div><strong>{e.prenom} {e.nom}</strong><span>{e.email || "—"}</span></div>
                             </div>
                           </td>
                           <td>{e.formation}</td>
@@ -329,11 +376,11 @@ export default function ResultatsPage() {
                           </td>
                         </tr>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </section>
         </div>
       </main>
