@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -11,26 +10,26 @@ const API = obtenirApiApprenant();
 
 function Icon({ name, size = 18 }) {
   const paths = {
-    book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" /></>,
-    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
-    calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></>,
-    clock: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>,
+    book: <g><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" /></g>,
+    search: <g><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></g>,
+    calendar: <g><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></g>,
+    clock: <g><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></g>,
     check: <path d="m5 12 4 4L19 6" />,
-    lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
-    play: <><path d="m8 5 12 7-12 7V5Z" /></>,
-    file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h8" /></>,
-    video: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3V9Z" /></>,
-    link: <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71" /></>,
-    arrow: <><path d="M5 12h14M12 5l7 7-7 7" /></>,
-    back: <><path d="m12 19-7-7 7-7M5 12h14" /></>,
+    lock: <g><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></g>,
+    play: <g><path d="m8 5 12 7-12 7V5Z" /></g>,
+    file: <g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h8" /></g>,
+    video: <g><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3V9Z" /></g>,
+    link: <g><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71" /></g>,
+    arrow: <g><path d="M5 12h14M12 5l7 7-7 7" /></g>,
+    back: <g><path d="m12 19-7-7 7-7M5 12h14" /></g>,
     chevron: <path d="m9 18 6-6-6-6" />,
-    close: <><path d="m18 6-12 12M6 6l12 12" /></>,
-    award: <><circle cx="12" cy="8" r="6" /><path d="m8.2 13-1.2 9 5-3 5 3-1.2-9" /></>,
-    layers: <><path d="m12 2 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 17l9 5 9-5" /></>,
-    refresh: <><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3" /></>,
-    graduation: <><path d="m2 10 10-5 10 5-10 5-10-5Z" /><path d="M6 12v5c3 3 9 3 12 0v-5M22 10v6" /></>,
-    checkCircle: <><circle cx="12" cy="12" r="10" /><path d="m8 12 3 3 5-6" /></>,
-    alert: <><path d="M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.6L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></>
+    close: <g><path d="m18 6-12 12M6 6l12 12" /></g>,
+    award: <g><circle cx="12" cy="8" r="6" /><path d="m8.2 13-1.2 9 5-3 5 3-1.2-9" /></g>,
+    layers: <g><path d="m12 2 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 17l9 5 9-5" /></g>,
+    refresh: <g><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3" /></g>,
+    graduation: <g><path d="m2 10 10-5 10 5-10 5-10-5Z" /><path d="M6 12v5c3 3 9 3 12 0v-5M22 10v6" /></g>,
+    checkCircle: <g><circle cx="12" cy="12" r="10" /><path d="m8 12 3 3 5-6" /></g>,
+    alert: <g><path d="M10.3 3.9 2.5 17.4A2 2 0 0 0 4.2 20h15.6a2 2 0 0 0 1.7-2.6L13.7 3.9a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4M12 17h.01" /></g>
   };
 
   return (
@@ -52,7 +51,6 @@ function Icon({ name, size = 18 }) {
 
 function obtenirToken() {
   if (typeof window === "undefined") return "";
-
   return (
     sessionStorage.getItem("token") ||
     localStorage.getItem("token") ||
@@ -66,35 +64,29 @@ async function requete(url, options = {}) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers
   };
-
   if (
     typeof FormData === "undefined" ||
     !(options.body instanceof FormData)
   ) {
     headers["Content-Type"] = "application/json";
   }
-
   const response = await fetch(`${API}${url}`, {
     ...options,
     headers,
     cache: "no-store"
   });
-
   const texte = await response.text();
   let data = {};
-
   try {
     data = texte ? JSON.parse(texte) : {};
   } catch {
     data = { message: texte };
   }
-
   if (!response.ok) {
     throw new Error(
       data.message || data.erreur || "Une erreur est survenue."
     );
   }
-
   return data;
 }
 
@@ -109,9 +101,7 @@ function liste(data, cle) {
 
 function obtenirUrl(url) {
   if (!url) return "";
-
   const valeur = String(url).trim();
-
   if (
     valeur.startsWith("http://") ||
     valeur.startsWith("https://") ||
@@ -119,7 +109,6 @@ function obtenirUrl(url) {
   ) {
     return valeur;
   }
-
   return `${SERVEUR}/${valeur.replace(/^\/+/, "")}`;
 }
 
@@ -131,7 +120,6 @@ function obtenirContenu(module) {
     module?.fichier ??
     module?.mediaUrl ??
     "";
-
   if (typeof contenu === "object" && contenu !== null) {
     contenu =
       contenu.url ??
@@ -141,11 +129,9 @@ function obtenirContenu(module) {
       contenu.fichier ??
       "";
   }
-
   if (typeof contenu === "string") {
     try {
       const parsed = JSON.parse(contenu);
-
       if (typeof parsed === "string") {
         contenu = parsed;
       } else if (parsed && typeof parsed === "object") {
@@ -161,23 +147,18 @@ function obtenirContenu(module) {
       contenu = contenu;
     }
   }
-
   return obtenirUrl(contenu);
 }
 
 function obtenirType(module, url) {
   const type = String(module?.typeContenu || "").toLowerCase();
-
   if (type.includes("pdf")) return "pdf";
   if (type.includes("video") || type.includes("vidéo")) return "video";
   if (type.includes("lien") || type.includes("link") || type.includes("url")) {
     return "lien";
   }
-
   const chemin = String(url || "").split("?")[0].toLowerCase();
-
   if (chemin.endsWith(".pdf")) return "pdf";
-
   if (
     [".mp4", ".webm", ".ogg", ".mov", ".m4v"].some(ext =>
       chemin.endsWith(ext)
@@ -185,7 +166,6 @@ function obtenirType(module, url) {
   ) {
     return "video";
   }
-
   if (
     url?.includes("youtube.com") ||
     url?.includes("youtu.be") ||
@@ -193,7 +173,6 @@ function obtenirType(module, url) {
   ) {
     return "video";
   }
-
   return "lien";
 }
 
@@ -201,7 +180,6 @@ function obtenirYoutubeEmbed(url) {
   try {
     const parsed = new URL(url);
     let id = "";
-
     if (parsed.hostname.includes("youtu.be")) {
       id = parsed.pathname.split("/").filter(Boolean)[0];
     } else if (parsed.hostname.includes("youtube.com")) {
@@ -209,7 +187,6 @@ function obtenirYoutubeEmbed(url) {
         parsed.searchParams.get("v") ||
         parsed.pathname.split("/").filter(Boolean).pop();
     }
-
     return id ? `https://www.youtube.com/embed/${id}` : "";
   } catch {
     return "";
@@ -242,29 +219,24 @@ function estTermine(module) {
 
 function obtenirStatut(module) {
   if (estTermine(module)) return "terminee";
-
   if (
     module?.statut === "en_cours" ||
     module?.suiviModule?.statut === "en_cours"
   ) {
     return "en_cours";
   }
-
   return "non_commence";
 }
 
 function obtenirQuizFinal(formation) {
   const quiz = formation?.quizFinal;
-
   if (!quiz || typeof quiz !== "object") return null;
-
   return quiz.codeQuiz ? quiz : null;
 }
 
 function ModuleContenu({ module }) {
   const url = obtenirContenu(module);
   const type = obtenirType(module, url);
-
   if (!url) {
     return (
       <div className={styles.contentEmpty}>
@@ -278,11 +250,9 @@ function ModuleContenu({ module }) {
       </div>
     );
   }
-
   const youtube = obtenirYoutubeEmbed(url);
   const vimeo = obtenirVimeoEmbed(url);
   const drive = obtenirDriveEmbed(url);
-
   if (type === "video") {
     if (youtube || vimeo || drive) {
       return (
@@ -296,7 +266,6 @@ function ModuleContenu({ module }) {
               <p>Regardez attentivement cette ressource pédagogique.</p>
             </div>
           </div>
-
           <div className={styles.mediaContainer}>
             <iframe
               src={youtube || vimeo || drive}
@@ -308,7 +277,6 @@ function ModuleContenu({ module }) {
         </section>
       );
     }
-
     return (
       <section className={styles.contentCard}>
         <div className={styles.contentHeading}>
@@ -320,12 +288,10 @@ function ModuleContenu({ module }) {
             <p>Regardez la vidéo pour apprendre le contenu du module.</p>
           </div>
         </div>
-
         <video controls preload="metadata" className={styles.videoPlayer}>
           <source src={url} />
           Votre navigateur ne prend pas en charge la lecture vidéo.
         </video>
-
         <a
           href={url}
           target="_blank"
@@ -338,7 +304,6 @@ function ModuleContenu({ module }) {
       </section>
     );
   }
-
   if (type === "pdf") {
     return (
       <section className={styles.contentCard}>
@@ -351,14 +316,12 @@ function ModuleContenu({ module }) {
             <p>Consultez le support pédagogique de ce module.</p>
           </div>
         </div>
-
         <div className={styles.pdfContainer}>
           <iframe
             src={url}
             title={module.titreModule || "Document PDF"}
           />
         </div>
-
         <a
           href={url}
           target="_blank"
@@ -371,7 +334,6 @@ function ModuleContenu({ module }) {
       </section>
     );
   }
-
   return (
     <section className={styles.contentCard}>
       <div className={styles.contentHeading}>
@@ -383,7 +345,6 @@ function ModuleContenu({ module }) {
           <p>Consultez cette ressource pour apprendre le contenu du module.</p>
         </div>
       </div>
-
       <a
         href={url}
         target="_blank"
@@ -399,7 +360,6 @@ function ModuleContenu({ module }) {
 
 function ModuleDetail({ moduleId }) {
   const router = useRouter();
-
   const [module, setModule] = useState(null);
   const [formation, setFormation] = useState(null);
   const [chargement, setChargement] = useState(true);
@@ -409,40 +369,31 @@ function ModuleDetail({ moduleId }) {
 
   useEffect(() => {
     let annule = false;
-
     async function chargerModule() {
       try {
         const [modulesData, formationsData] = await Promise.all([
           requete("/modules"),
           requete("/formations")
         ]);
-
         if (annule) return;
-
         const modules = liste(modulesData, "modules");
         const formations = liste(formationsData, "formations");
-
         const resultat = modules.find(item =>
           String(item.codeModule ?? item.idModule ?? item.id) ===
           String(moduleId)
         );
-
         if (!resultat) {
           throw new Error("Module introuvable ou non accessible.");
         }
-
         const formationAssociee = formations.find(item =>
           String(item.numFormation) === String(resultat.numFormation)
         );
-
         let moduleCharge = resultat;
-
         if (!estTermine(resultat)) {
           const debut = await requete(
             `/modules/${encodeURIComponent(moduleId)}/commencer`,
             { method: "POST" }
           );
-
           moduleCharge = {
             ...resultat,
             ...(debut.module || {}),
@@ -450,9 +401,7 @@ function ModuleDetail({ moduleId }) {
             statut: debut.suiviModule?.statut || "en_cours"
           };
         }
-
         if (annule) return;
-
         setModule(moduleCharge);
         setFormation(formationAssociee || resultat.formation || null);
       } catch (error) {
@@ -461,9 +410,7 @@ function ModuleDetail({ moduleId }) {
         if (!annule) setChargement(false);
       }
     }
-
     chargerModule();
-
     return () => {
       annule = true;
     };
@@ -471,17 +418,14 @@ function ModuleDetail({ moduleId }) {
 
   const terminerModule = async () => {
     if (!module || terminaison || estTermine(module)) return;
-
     setErreur("");
     setMessage("");
     setTerminaison(true);
-
     try {
       const resultat = await requete(
         `/modules/${encodeURIComponent(moduleId)}/terminer`,
         { method: "PUT" }
       );
-
       setModule(current => ({
         ...current,
         statut: "terminee",
@@ -491,12 +435,10 @@ function ModuleDetail({ moduleId }) {
           statut: "terminee"
         }
       }));
-
       setMessage(
         resultat.message ||
         "Module terminé avec succès. Votre progression a été mise à jour."
       );
-
       if (resultat.tousModulesTermines) {
         setMessage(
           "Félicitations ! Tous les modules de cette formation sont terminés. Le quiz final est maintenant déverrouillé."
@@ -527,7 +469,6 @@ function ModuleDetail({ moduleId }) {
           <Icon name="alert" />
           <span>{erreur}</span>
         </div>
-
         <button
           type="button"
           className={styles.secondaryButton}
@@ -541,7 +482,6 @@ function ModuleDetail({ moduleId }) {
   }
 
   if (!module) return null;
-
   const url = obtenirContenu(module);
   const type = obtenirType(module, url);
   const termine = estTermine(module);
@@ -559,7 +499,6 @@ function ModuleDetail({ moduleId }) {
 
       <header className={styles.moduleHeader}>
         <span className={styles.eyebrow}>MODULE DE FORMATION</span>
-
         <div className={styles.moduleTitleRow}>
           <div>
             <h1>{module.titreModule || "Module sans titre"}</h1>
@@ -567,7 +506,6 @@ function ModuleDetail({ moduleId }) {
               {module.descriptionModule || "Aucune description disponible."}
             </p>
           </div>
-
           <span
             className={`${styles.statusBadge} ${
               termine ? styles.statusDone : styles.statusProgress
@@ -577,14 +515,12 @@ function ModuleDetail({ moduleId }) {
             {termine ? "Terminé" : "En cours"}
           </span>
         </div>
-
         {formation && (
           <p className={styles.formationReference}>
             <Icon name="book" size={16} />
             Formation : <strong>{obtenirNomFormation(formation)}</strong>
           </p>
         )}
-
         <span className={styles.contentType}>
           <Icon
             name={type === "video" ? "video" : type === "pdf" ? "file" : "link"}
@@ -623,7 +559,6 @@ function ModuleDetail({ moduleId }) {
               : "Cliquez sur le bouton lorsque vous avez consulté le contenu pédagogique."}
           </p>
         </div>
-
         <button
           type="button"
           className={termine ? styles.completedButton : styles.primaryButton}
@@ -631,57 +566,45 @@ function ModuleDetail({ moduleId }) {
           disabled={termine || terminaison}
         >
           {termine ? (
-            <>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <Icon name="checkCircle" />
               Module terminé
-            </>
+            </span>
           ) : terminaison ? (
             "Enregistrement..."
           ) : (
-            <>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <Icon name="check" />
               Terminer le module
-            </>
+            </span>
           )}
         </button>
       </section>
-
-      <footer className={styles.footer}>
-        <Link href="/dashboard/apprenant/formations">
-          <Icon name="back" size={16} />
-          Retour à mes formations
-        </Link>
-      </footer>
     </main>
   );
 }
 
 function fusionnerFormations(disponibles, inscrites) {
   const map = new Map();
-
   disponibles.forEach(formation => {
     map.set(String(formation.numFormation), {
       ...formation,
       inscrit: false
     });
   });
-
   inscrites.forEach(formation => {
     const id = String(formation.numFormation);
-
     map.set(id, {
       ...(map.get(id) || {}),
       ...formation,
       inscrit: true
     });
   });
-
   return Array.from(map.values());
 }
 
 function CatalogueFormations() {
   const router = useRouter();
-
   const [formations, setFormations] = useState([]);
   const [modules, setModules] = useState([]);
   const [chargement, setChargement] = useState(true);
@@ -697,20 +620,17 @@ function CatalogueFormations() {
       requete("/formations"),
       requete("/modules")
     ]);
-
     setFormations(
       fusionnerFormations(
         liste(disponibles, "formations"),
         liste(inscrites, "formations")
       )
     );
-
     setModules(liste(modulesData, "modules"));
   }, []);
 
   useEffect(() => {
     let annule = false;
-
     async function initialiser() {
       try {
         const [disponibles, inscrites, modulesData] = await Promise.all([
@@ -718,16 +638,13 @@ function CatalogueFormations() {
           requete("/formations"),
           requete("/modules")
         ]);
-
         if (annule) return;
-
         setFormations(
           fusionnerFormations(
             liste(disponibles, "formations"),
             liste(inscrites, "formations")
           )
         );
-
         setModules(liste(modulesData, "modules"));
       } catch (error) {
         if (!annule) setErreur(error.message);
@@ -735,9 +652,7 @@ function CatalogueFormations() {
         if (!annule) setChargement(false);
       }
     }
-
     initialiser();
-
     return () => {
       annule = true;
     };
@@ -745,21 +660,17 @@ function CatalogueFormations() {
 
   const inscription = async formation => {
     const id = formation.numFormation;
-
     if (!id) {
       setErreur("Identifiant de formation introuvable.");
       return;
     }
-
     setErreur("");
     setActionEnCours(String(id));
-
     try {
       await requete(
         `/formations/${encodeURIComponent(id)}/inscription`,
         { method: "POST" }
       );
-
       await chargerCatalogue();
     } catch (error) {
       setErreur(error.message);
@@ -770,12 +681,10 @@ function CatalogueFormations() {
 
   const desinscription = async formation => {
     const id = formation.numFormation;
-
     if (!id) {
       setErreur("Identifiant de formation introuvable.");
       return;
     }
-
     if (
       !window.confirm(
         "Voulez-vous vraiment vous désinscrire de cette formation ?"
@@ -783,16 +692,13 @@ function CatalogueFormations() {
     ) {
       return;
     }
-
     setErreur("");
     setActionEnCours(String(id));
-
     try {
       await requete(
         `/formations/${encodeURIComponent(id)}/desinscription`,
         { method: "DELETE" }
       );
-
       await chargerCatalogue();
       setFormationActive(null);
     } catch (error) {
@@ -806,14 +712,11 @@ function CatalogueFormations() {
     const depuisFormation = Array.isArray(formation.modules)
       ? formation.modules
       : [];
-
     const depuisApi = modules.filter(
       module =>
         String(module.numFormation) === String(formation.numFormation)
     );
-
     const map = new Map();
-
     [...depuisFormation, ...depuisApi].forEach(module => {
       const id = module.codeModule ?? module.idModule ?? module.id;
       if (id !== undefined && id !== null) {
@@ -823,7 +726,6 @@ function CatalogueFormations() {
         });
       }
     });
-
     return Array.from(map.values()).sort(
       (a, b) => (Number(a.ordre) || 0) - (Number(b.ordre) || 0)
     );
@@ -833,18 +735,14 @@ function CatalogueFormations() {
     const titre = String(
       formation.titre ?? formation.nomFormation ?? ""
     ).toLowerCase();
-
     const description = String(formation.description ?? "").toLowerCase();
     const terme = recherche.toLowerCase();
-
     const correspondRecherche =
       titre.includes(terme) || description.includes(terme);
-
     const correspondFiltre =
       filtre === "toutes" ||
       (filtre === "inscrites" && formation.inscrit) ||
       (filtre === "disponibles" && !formation.inscrit);
-
     return correspondRecherche && correspondFiltre;
   });
 
@@ -863,11 +761,21 @@ function CatalogueFormations() {
 
   return (
     <main className={styles.container}>
+      <div className={styles.topBar}>
+        <button
+          type="button"
+          className={styles.backButton}
+          onClick={() => router.push("/dashboard/apprenant")}
+        >
+          <Icon name="back" size={17} />
+          Retour au tableau de bord
+        </button>
+      </div>
+
       <header className={styles.header}>
         <div className={styles.headerIcon}>
           <Icon name="graduation" size={25} />
         </div>
-
         <div>
           <span className={styles.eyebrow}>ESPACE APPRENANT</span>
           <h1>Mes formations</h1>
@@ -902,7 +810,6 @@ function CatalogueFormations() {
             <span>Formations disponibles</span>
           </div>
         </article>
-
         <article className={styles.overviewCard}>
           <span className={styles.overviewIcon}>
             <Icon name="graduation" size={21} />
@@ -912,7 +819,6 @@ function CatalogueFormations() {
             <span>Mes inscriptions</span>
           </div>
         </article>
-
         <article className={styles.overviewCard}>
           <span className={styles.overviewIcon}>
             <Icon name="layers" size={21} />
@@ -952,7 +858,6 @@ function CatalogueFormations() {
             </button>
           )}
         </div>
-
         <div className={styles.filters}>
           <button
             type="button"
@@ -992,16 +897,13 @@ function CatalogueFormations() {
             const id = formation.numFormation;
             const listeModules = modulesFormation(formation);
             const ouverte = String(formationActive) === String(id);
-
             const modulesTermines = Number(
               formation.modulesTermines ??
               listeModules.filter(estTermine).length
             );
-
             const totalModules = Number(
               formation.totalModules ?? listeModules.length
             );
-
             const progression = Math.max(
               0,
               Math.min(
@@ -1014,22 +916,18 @@ function CatalogueFormations() {
                 )
               )
             );
-
             const tousModulesTermines =
               formation.tousModulesTermines === true ||
               (totalModules > 0 && modulesTermines >= totalModules);
-
             const quizFinal = obtenirQuizFinal(formation);
             const quizFinalAccessible =
               formation.inscrit && tousModulesTermines && Boolean(quizFinal);
-
             return (
               <article className={styles.formationCard} key={id ?? index}>
                 <div className={styles.formationCardHeader}>
                   <span className={styles.formationIcon}>
                     <Icon name="book" size={23} />
                   </span>
-
                   <span
                     className={`${styles.enrollmentBadge} ${
                       formation.inscrit
@@ -1040,13 +938,10 @@ function CatalogueFormations() {
                     {formation.inscrit ? "Inscrit" : "Disponible"}
                   </span>
                 </div>
-
                 <h2>{obtenirNomFormation(formation)}</h2>
-
                 <p className={styles.formationDescription}>
                   {formation.description || "Aucune description disponible."}
                 </p>
-
                 <div className={styles.formationDates}>
                   {formation.dateDebut && (
                     <span>
@@ -1061,19 +956,16 @@ function CatalogueFormations() {
                     </span>
                   )}
                 </div>
-
                 <div className={styles.moduleCount}>
                   <Icon name="layers" size={16} />
                   {listeModules.length} module(s)
                 </div>
-
                 {formation.inscrit && (
                   <div className={styles.progressSection}>
                     <div className={styles.progressLabels}>
                       <span>Progression de la formation</span>
                       <strong>{Math.round(progression)}%</strong>
                     </div>
-
                     <div
                       className={styles.progressTrack}
                       role="progressbar"
@@ -1087,13 +979,11 @@ function CatalogueFormations() {
                         style={{ width: `${progression}%` }}
                       />
                     </div>
-
                     <span className={styles.progressCaption}>
                       {modulesTermines} module(s) terminé(s) sur {totalModules}
                     </span>
                   </div>
                 )}
-
                 {formation.inscrit ? (
                   <div className={styles.cardActions}>
                     <button
@@ -1104,7 +994,6 @@ function CatalogueFormations() {
                       <Icon name={ouverte ? "close" : "layers"} size={17} />
                       {ouverte ? "Masquer les modules" : "Consulter les modules"}
                     </button>
-
                     <button
                       type="button"
                       className={styles.textButton}
@@ -1129,7 +1018,6 @@ function CatalogueFormations() {
                       : "S'inscrire à la formation"}
                   </button>
                 )}
-
                 {formation.inscrit && ouverte && (
                   <div className={styles.modulesPanel}>
                     <div className={styles.panelHeading}>
@@ -1141,7 +1029,6 @@ function CatalogueFormations() {
                         {listeModules.length} module(s)
                       </span>
                     </div>
-
                     {listeModules.length === 0 ? (
                       <div className={styles.emptyModules}>
                         Aucun module n&apos;a encore été ajouté à cette formation.
@@ -1153,14 +1040,11 @@ function CatalogueFormations() {
                             module.codeModule ??
                             module.idModule ??
                             module.id;
-
                           const type = obtenirType(
                             module,
                             obtenirContenu(module)
                           );
-
                           const statut = obtenirStatut(module);
-
                           return (
                             <article
                               key={moduleId ?? moduleIndex}
@@ -1169,17 +1053,14 @@ function CatalogueFormations() {
                               <div className={styles.moduleNumber}>
                                 {String(module.ordre || moduleIndex + 1).padStart(2, "0")}
                               </div>
-
                               <div className={styles.moduleInfo}>
                                 <h4>
                                   {module.titreModule || "Module sans titre"}
                                 </h4>
-
                                 <p>
                                   {module.descriptionModule ||
                                     "Aucune description disponible."}
                                 </p>
-
                                 <div className={styles.moduleMeta}>
                                   <span>
                                     <Icon
@@ -1198,7 +1079,6 @@ function CatalogueFormations() {
                                         ? "PDF"
                                         : "Lien externe"}
                                   </span>
-
                                   <span
                                     className={`${styles.statusBadge} ${
                                       statut === "terminee"
@@ -1215,7 +1095,6 @@ function CatalogueFormations() {
                                     ) : (
                                       <Icon name="lock" size={13} />
                                     )}
-
                                     {statut === "terminee"
                                       ? "Terminé"
                                       : statut === "en_cours"
@@ -1224,7 +1103,6 @@ function CatalogueFormations() {
                                   </span>
                                 </div>
                               </div>
-
                               <button
                                 type="button"
                                 className={styles.moduleOpenButton}
@@ -1244,16 +1122,13 @@ function CatalogueFormations() {
                         })}
                       </div>
                     )}
-
                     <section className={styles.finalQuizPanel}>
                       <div className={styles.finalQuizIcon}>
                         <Icon name="award" size={23} />
                       </div>
-
                       <div className={styles.finalQuizInfo}>
                         <span className={styles.eyebrow}>ÉVALUATION FINALE</span>
                         <h3>{quizFinal?.nomQuiz || "Quiz final de la formation"}</h3>
-
                         {quizFinalAccessible ? (
                           <p>
                             Tous les modules sont terminés. Vous pouvez maintenant
@@ -1271,7 +1146,6 @@ function CatalogueFormations() {
                           </p>
                         )}
                       </div>
-
                       {quizFinalAccessible ? (
                         <button
                           type="button"
@@ -1301,29 +1175,19 @@ function CatalogueFormations() {
           })}
         </div>
       )}
-
-      <footer className={styles.footer}>
-        <Link href="/dashboard/apprenant">
-          <Icon name="back" size={16} />
-          Retour au tableau de bord
-        </Link>
-      </footer>
     </main>
   );
 }
 
 function PageFormations() {
   const searchParams = useSearchParams();
-
   const moduleId =
     searchParams.get("id") ||
     searchParams.get("codeModule") ||
     searchParams.get("module");
-
   if (moduleId) {
     return <ModuleDetail moduleId={moduleId} />;
   }
-
   return <CatalogueFormations />;
 }
 
