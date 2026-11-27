@@ -7,17 +7,19 @@ import { obtenirApiFormateur } from "@/lib/api";
 
 const API = obtenirApiFormateur() + "/tentatives";
 const ACTUALISATION_MS = 5000;
-const DELAI_HORS_LIGNE_MS = 30000; // 30s sans activité = hors ligne
+const DELAI_HORS_LIGNE_MS = 30000;
 
 function obtenirToken() {
   if (typeof window === "undefined") return "";
   return sessionStorage.getItem("token") || localStorage.getItem("token") || "";
 }
+
 function dateLisible(date) {
   if (!date) return "Non disponible";
   const v = new Date(date);
   return Number.isNaN(v.getTime()) ? "Non disponible" : v.toLocaleString("fr-FR");
 }
+
 function dureeLisible(sec) {
   const total = Math.max(0, Number(sec || 0));
   const m = Math.floor(total / 60);
@@ -25,6 +27,7 @@ function dureeLisible(sec) {
   if (m > 0) return `${m} min ${s} s`;
   return `${s} s`;
 }
+
 function nomApprenant(t) {
   const a = t.apprenant;
   if (!a) return `Apprenant #${t.idApprenant || "?"}`;
@@ -33,11 +36,13 @@ function nomApprenant(t) {
   if (prenom) prenom = prenom.charAt(0).toUpperCase() + prenom.slice(1).toLowerCase();
   return [nom, prenom].filter(Boolean).join(" ") || `Apprenant #${t.idApprenant}`;
 }
+
 function obtenirScore(t) {
   if (t.evaluation?.score != null) return Number(t.evaluation.score);
   if (t.score != null) return Number(t.score);
   return null;
 }
+
 function typeActiviteTexte(type) {
   const map = {
     sortie_onglet: "Sortie de l'onglet",
@@ -48,40 +53,33 @@ function typeActiviteTexte(type) {
   return map[type] || type || "Activité";
 }
 
-// ===== LOGIQUE DE STATUT - SIMPLIFIÉE ET CORRIGÉE =====
 function derniereActiviteMs(t) {
   const d = new Date(t.derniereActivite || t.dateTentative || 0).getTime();
   return Number.isNaN(d) ? 0 : d;
 }
+
 function estSortie(type) {
   return ["sortie_onglet", "sortie_fenetre", "page_quittee", "sortie", "hors_ecran", "hidden", "blur"].includes(String(type || "").toLowerCase());
 }
+
 function derniereActiviteJournal(t) {
   const acts = Array.isArray(t.activites) ? t.activites : [];
   if (!acts.length) return null;
   return acts[acts.length - 1];
 }
 
-// Le seul endroit qui décide du statut
 function statutTentative(t, maintenant) {
   const base = String(t.statut || "").toLowerCase();
   if (base === "terminee" || base === "terminée") return "terminee";
   if (base === "abandonnee" || base === "abandonnée") return "abandonnee";
-
-  // Si ce n'est pas en_cours en base, ce n'est PAS en cours
   if (base !== "en_cours") return "hors_ligne";
 
   const age = maintenant - derniereActiviteMs(t);
   const derniere = derniereActiviteJournal(t);
 
-  // 1. Hors écran = dernier événement = sortie, sans retour
   if (derniere && estSortie(derniere.type)) return "hors_ecran";
   if (t.horsEcran === true) return "hors_ecran";
-
-  // 2. Hors ligne = plus de 30s sans activité
   if (age > DELAI_HORS_LIGNE_MS) return "hors_ligne";
-
-  // 3. Sinon, vraiment en cours
   return "en_cours";
 }
 
@@ -92,6 +90,7 @@ function statutTexte(s) {
   if (s === "abandonnee") return "Abandonnée";
   return "En cours";
 }
+
 function classeStatut(s) {
   if (s === "terminee") return styles.terminee;
   if (s === "hors_ecran") return styles.hors_ecran;
@@ -153,7 +152,6 @@ export default function TentativesFormateurPage() {
     return Array.from(map.entries()).map(([id, titre]) => ({ id: String(id), titre }));
   }, [tentatives]);
 
-  // Stats calculées avec LA MÊME logique que le filtre
   const stats = useMemo(() => {
     const compte = (s) => tentatives.filter((t) => statutTentative(t, maintenant) === s).length;
     return {
@@ -212,21 +210,36 @@ export default function TentativesFormateurPage() {
   const recharger = () => { setChargement(true); chargerTentatives(true); };
 
   if (chargement && tentatives.length === 0) {
-    return <div className={styles.page}><div className={styles.chargement}><div className={styles.spinner}></div><p>Chargement des tentatives...</p></div></div>;
+    return (
+      <div className={styles.page}>
+        <div className={styles.chargement}>
+          <div className={styles.spinner}></div>
+          <p>Chargement des tentatives...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.headerContent}>
           <Link href="/dashboard/formateur" className={styles.retour}>← Dashboard</Link>
+          <span className={styles.eyebrow}>ESPACE FORMATEUR</span>
           <h1>Suivi des tentatives</h1>
           <p className={styles.sousTitre}>Qui fait le quiz en ce moment, qui est hors écran, qui a changé d&apos;onglet.</p>
         </div>
-        <button type="button" className={styles.boutonActualiser} onClick={recharger} disabled={chargement}>↻ {chargement ? "Actualisation..." : "Actualiser"}</button>
+        <button type="button" className={styles.boutonActualiser} onClick={recharger} disabled={chargement}>
+          ↻ {chargement ? "Actualisation..." : "Actualiser"}
+        </button>
       </header>
 
-      {erreur && <div className={styles.erreur}><strong>Erreur :</strong> {erreur} <button type="button" onClick={recharger}>Réessayer</button></div>}
+      {erreur && (
+        <div className={styles.erreur}>
+          <strong>Erreur :</strong> {erreur}
+          <button type="button" onClick={recharger}>Réessayer</button>
+        </div>
+      )}
 
       <div className={styles.statistiques}>
         <div className={styles.statCard}><span className={styles.statLabel}>Total</span><strong>{stats.total}</strong></div>
@@ -239,8 +252,17 @@ export default function TentativesFormateurPage() {
       </div>
 
       <section className={styles.filtres}>
-        <div className={styles.filtreRecherche}><label htmlFor="recherche">Rechercher</label><input id="recherche" type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Apprenant, quiz, formation..." /></div>
-        <div className={styles.filtreFormation}><label htmlFor="formation">Formation</label><select id="formation" value={formationSelectionnee} onChange={(e) => setFormationSelectionnee(e.target.value)}><option value="toutes">Toutes les formations</option>{formations.map((f) => <option key={f.id} value={f.id}>{f.titre}</option>)}</select></div>
+        <div className={styles.filtreRecherche}>
+          <label htmlFor="recherche">Rechercher</label>
+          <input id="recherche" type="search" value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Apprenant, quiz, formation..." />
+        </div>
+        <div className={styles.filtreFormation}>
+          <label htmlFor="formation">Formation</label>
+          <select id="formation" value={formationSelectionnee} onChange={(e) => setFormationSelectionnee(e.target.value)}>
+            <option value="toutes">Toutes les formations</option>
+            {formations.map((f) => <option key={f.id} value={f.id}>{f.titre}</option>)}
+          </select>
+        </div>
       </section>
 
       <nav className={styles.filtresStatut}>
@@ -249,12 +271,18 @@ export default function TentativesFormateurPage() {
         ))}
       </nav>
 
-      <div className={styles.infoActualisation}><span className={styles.pointLive}></span>Actualisation automatique toutes les 5 secondes{actualisation && <span className={styles.dateActualisation}>Dernière mise à jour : {dateLisible(actualisation)}</span>}</div>
-      <p className={styles.sousTitre}>En cours = en train de faire le quiz MAINTENANT (activité il y a moins de 30 secondes). Hors ligne = a commencé mais plus d&apos;activité depuis plus de 30 secondes.</p>
+      <div className={styles.infoActualisation}>
+        <span className={styles.pointLive}></span>
+        Actualisation automatique toutes les 5 secondes
+        {actualisation && <span className={styles.dateActualisation}>Dernière mise à jour : {dateLisible(actualisation)}</span>}
+      </div>
 
       <section className={styles.liste}>
         {filtrees.length === 0 ? (
-          <div className={styles.vide}><h3>Aucune tentative trouvée</h3><p>{filtre === "en_cours" ? "Personne ne fait le quiz en ce moment." : "Les tentatives des apprenants apparaîtront ici dès qu'ils commenceront un quiz."}</p></div>
+          <div className={styles.vide}>
+            <h3>Aucune tentative trouvée</h3>
+            <p>{filtre === "en_cours" ? "Personne ne fait le quiz en ce moment." : "Les tentatives des apprenants apparaîtront ici dès qu'ils commenceront un quiz."}</p>
+          </div>
         ) : filtrees.map((t) => {
           const id = t.idTentative;
           const statut = statutTentative(t, maintenant);
@@ -278,13 +306,26 @@ export default function TentativesFormateurPage() {
               <div className={styles.cardHeader}>
                 <div className={styles.identite}>
                   <div className={styles.avatar}>{nomApprenant(t).slice(0, 1).toUpperCase()}</div>
-                  <div><h3>{nomApprenant(t)} {statut === "en_cours" && <span className={styles.dotEnLigne}>● En ligne</span>}</h3><p>{t.apprenant?.email || `ID apprenant : ${t.idApprenant}`}</p></div>
+                  <div>
+                    <h3>{nomApprenant(t)} {statut === "en_cours" && <span className={styles.dotEnLigne}>● En ligne</span>}</h3>
+                    <p>{t.apprenant?.email || `ID apprenant : ${t.idApprenant}`}</p>
+                  </div>
                 </div>
                 <span className={`${styles.statut} ${classeStatut(statut)}`}>{statutTexte(statut)}</span>
               </div>
 
-              {statut === "hors_ecran" && <div className={styles.alerteSorties}><strong>⚠️ Hors écran / Changement d&apos;onglet</strong><span>Le dernier événement = sortie. Pas de retour. Sorties : {sorties} · Temps hors écran : {dureeLisible(tempsHorsEcran)}</span></div>}
-              {statut === "hors_ligne" && <div className={styles.alerteSorties}><strong>Hors ligne</strong><span>Plus de 30 secondes sans activité. Dernière activité : {dateLisible(t.derniereActivite)}</span></div>}
+              {statut === "hors_ecran" && (
+                <div className={styles.alerteSorties}>
+                  <strong>⚠ Hors écran / Changement d&apos;onglet</strong>
+                  <span>Le dernier événement = sortie. Pas de retour. Sorties : {sorties} · Temps hors écran : {dureeLisible(tempsHorsEcran)}</span>
+                </div>
+              )}
+              {statut === "hors_ligne" && (
+                <div className={styles.alerteSorties}>
+                  <strong>Hors ligne</strong>
+                  <span>Plus de 30 secondes sans activité. Dernière activité : {dateLisible(t.derniereActivite)}</span>
+                </div>
+              )}
 
               <div className={styles.infosQuiz}>
                 <div><span className={styles.label}>Quiz</span><strong>{t.quiz?.nomQuiz || "Quiz"}</strong></div>
@@ -324,16 +365,33 @@ export default function TentativesFormateurPage() {
                 </div>
               )}
 
-              {sorties > 0 && <div className={styles.alerteSorties}><strong>{sorties} sortie(s) enregistrée(s)</strong><span>Les changements d&apos;onglet ou de fenêtre figurent dans l&apos;historique.</span></div>}
+              {sorties > 0 && (
+                <div className={styles.alerteSorties}>
+                  <strong>{sorties} sortie(s) enregistrée(s)</strong>
+                  <span>Les changements d&apos;onglet ou de fenêtre figurent dans l&apos;historique.</span>
+                </div>
+              )}
 
               <button type="button" className={styles.boutonDetails} onClick={() => toggleDetails(id)} aria-expanded={ouvert}>{ouvert ? "Masquer les activités ▲" : "Voir les activités ▼"}</button>
+
               {ouvert && (
                 <div className={styles.details}>
                   <h4>Historique des activités</h4>
-                  {activites.length === 0 ? <p className={styles.aucuneActivite}>Aucune activité de surveillance enregistrée.</p> : (
-                    <div className={styles.timeline}>{activites.map((a, i) => (
-                      <div className={styles.activite} key={a.idActivite || i}><div className={a.type === "retour" ? styles.pointRetour : styles.pointSortie}></div><div className={styles.activiteContenu}><strong>{typeActiviteTexte(a.type)}</strong><span>{dateLisible(a.dateActivite)}</span>{a.dureeSecondes != null && <span>Durée : {dureeLisible(a.dureeSecondes)}</span>}</div></div>
-                    ))}</div>
+                  {activites.length === 0 ? (
+                    <p className={styles.aucuneActivite}>Aucune activité de surveillance enregistrée.</p>
+                  ) : (
+                    <div className={styles.timeline}>
+                      {activites.map((a, i) => (
+                        <div className={styles.activite} key={a.idActivite || i}>
+                          <div className={a.type === "retour" ? styles.pointRetour : styles.pointSortie}></div>
+                          <div className={styles.activiteContenu}>
+                            <strong>{typeActiviteTexte(a.type)}</strong>
+                            <span>{dateLisible(a.dateActivite)}</span>
+                            {a.dureeSecondes != null && <span>Durée : {dureeLisible(a.dureeSecondes)}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                   <div className={styles.detailsInformations}>
                     <p><strong>ID tentative :</strong> {id}</p>
