@@ -620,7 +620,7 @@ export default function CreerQuizPage() {
               ESPACE FORMATEUR
             </div>
 
-            <h1 className={styles.title}>Créer un quiz final</h1>
+            <h1 className={styles.title}>Créer un quiz</h1>
 
             <p className={styles.subtitle}>
               Préparez une évaluation pour vérifier les connaissances acquises

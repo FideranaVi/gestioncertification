@@ -810,7 +810,7 @@ function ModifierQuizContent() {
             ESPACE FORMATEUR
           </span>
 
-          <h1>Modifier le quiz final</h1>
+          <h1>Modifier le quiz</h1>
 
           <p>
             Modifie la formation associée, les informations, les
