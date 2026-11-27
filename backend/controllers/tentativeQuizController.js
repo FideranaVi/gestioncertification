@@ -3,18 +3,21 @@ const crypto = require("crypto");
 const { db, obtenirIdUtilisateur } = require("./utilsController");
 const sequelize = require("../config/database");
 const ActiviteTentative = require("../models/ActiviteTentative");
-const { Quiz, Module, Formation, Question, Reponse, TentativeQuiz, ReponseApprenant, Evaluation, SuiviFormation, SuiviModule, Utilisateur, Certificat } = db;
+const { Quiz, Module, Formation, Question, Reponse, TentativeQuiz, ReponseApprenant, Evaluation, 
+  SuiviFormation, SuiviModule, Utilisateur, Certificat } = db;
 const TYPES_SORTIE = ["sortie_onglet", "sortie_fenetre", "page_quittee"];
 const SEUIL_VERIFICATION = 4;
 
 function obtenirQuestionsOptions() {
-  return { model: Question, as: "questions", attributes: ["numQuestion", "typeQuestion", "enonce", "points"], include: [{ model: Reponse, as: "reponses", attributes: ["numReponse", "libelle", "estCorrecte"] }] };
+  return { model: Question, as: "questions", attributes: ["numQuestion", "typeQuestion", "enonce", 
+    "points"], include: [{ model: Reponse, as: "reponses", attributes: ["numReponse", "libelle", "estCorrecte"] }] };
 }
 function quizPourApprenant(quiz) {
   if (!quiz) return null;
   const donnees = quiz.toJSON ? quiz.toJSON() : JSON.parse(JSON.stringify(quiz));
   if (Array.isArray(donnees.questions)) {
-    donnees.questions = donnees.questions.map(question => ({ ...question, reponses: (question.reponses || []).map(reponse => { const { estCorrecte, esCorrect, ...reponsePublique } = reponse; return reponsePublique; }) }));
+    donnees.questions = donnees.questions.map(question => ({ ...question, reponses: (question.reponses || 
+      []).map(reponse => { const { estCorrecte, esCorrect, ...reponsePublique } = reponse; return reponsePublique; }) }));
   }
   return donnees;
 }
