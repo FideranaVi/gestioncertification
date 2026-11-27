@@ -3,6 +3,9 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+  LayoutDashboard, BookOpen, FileText, BarChart3, Trophy, User
+} from "lucide-react";
 import styles from "./quiz.module.css";
 import { obtenirApiApprenant } from "@/lib/api";
 const API = obtenirApiApprenant();
@@ -75,28 +78,28 @@ function estValide(item) {
   return s === "validee" || s === "valide" || s === "accepte";
 }
 
-// ===== NAVIGATION BAS - seule nouveauté, aucune logique =====
+// ===== NAVIGATION BAS PRO - SANS EMOJI =====
 function BottomNav({ actif = "quiz" }) {
+  const liens = [
+    { href: "/dashboard/apprenant", label: "Accueil", key: "accueil", Icon: LayoutDashboard },
+    { href: "/dashboard/apprenant/formations", label: "Formations", key: "formations", Icon: BookOpen },
+    { href: "/dashboard/apprenant/quiz", label: "Quiz", key: "quiz", Icon: FileText },
+    { href: "/dashboard/apprenant/resultats", label: "Résultats", key: "resultats", Icon: BarChart3 },
+    { href: "/dashboard/apprenant/certificats", label: "Certificats", key: "certificats", Icon: Trophy },
+    { href: "/dashboard/apprenant/profil", label: "Profil", key: "profil", Icon: User },
+  ];
+
   return (
     <nav className={styles.bottomNav}>
-      <Link href="/dashboard/apprenant" className={actif === "accueil" ? styles.active : ""}>
-        <span>🏠</span><span>Accueil</span>
-      </Link>
-      <Link href="/dashboard/apprenant/formations" className={actif === "formations" ? styles.active : ""}>
-        <span>📚</span><span>Formations</span>
-      </Link>
-      <Link href="/dashboard/apprenant/quiz" className={actif === "quiz" ? styles.active : ""}>
-        <span>📝</span><span>Quiz</span>
-      </Link>
-      <Link href="/dashboard/apprenant/resultats" className={actif === "resultats" ? styles.active : ""}>
-        <span>📊</span><span>Résultats</span>
-      </Link>
-      <Link href="/dashboard/apprenant/certificats" className={actif === "certificats" ? styles.active : ""}>
-        <span>🏆</span><span>Certificats</span>
-      </Link>
-      <Link href="/dashboard/apprenant/profil" className={actif === "profil" ? styles.active : ""}>
-        <span>👤</span><span>Profil</span>
-      </Link>
+      {liens.map(({ href, label, key, Icon }) => (
+        <Link key={key} href={href} className={actif === key ? styles.active : ""}>
+          <span className={styles.navIconWrap}>
+            <Icon size={22} strokeWidth={actif === key ? 2.4 : 1.8} />
+            {actif === key && <span className={styles.navDot} />}
+          </span>
+          <span className={styles.navLabel}>{label}</span>
+        </Link>
+      ))}
     </nav>
   );
 }
@@ -302,7 +305,7 @@ function QuizContent() {
     return (
       <main className={styles.page}>
         <header className={styles.topBar}>
-          <button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button>
+          <button className={styles.dashboardButton} onClick={allerDashboard}>Tableau de bord</button>
           <span className={styles.topBarLabel}>Résultat</span>
         </header>
         <section className={styles.resultCard}><div className={styles.resultContent}>
@@ -360,7 +363,7 @@ function QuizContent() {
           <h1 className={styles.pageTitle}>Mes quiz</h1>
           <p className={styles.subtitle}>Consultez les evaluations disponibles et testez vos connaissances.</p>
         </div>
-        <button className={styles.dashboardButton} onClick={allerDashboard}><span className={styles.dashboardButtonIcon}>⌂</span>Tableau de bord</button>
+        <button className={styles.dashboardButton} onClick={allerDashboard}>Tableau de bord</button>
       </header>
       {erreur && <div className={styles.errorNotice}>{erreur}</div>}
       {demarrage && (<div className={styles.infoNotice}>Preparation de votre quiz...</div>)}

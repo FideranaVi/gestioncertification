@@ -3,34 +3,38 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Mail, User, Trophy, BookOpen, FileText, Pencil, X, Save, LogOut } from "lucide-react";
+import {
+  ArrowLeft, Camera, Mail, User, Trophy, BookOpen, FileText,
+  Pencil, X, Save, LogOut,
+  LayoutDashboard, BarChart3
+} from "lucide-react";
 import styles from "./profil.module.css";
 
 import { obtenirApiApprenant } from "@/lib/api";
 const API = obtenirApiApprenant();
 
-// ===== NAVIGATION BAS =====
+// ===== NAVIGATION BAS PRO - SANS EMOJI =====
 function BottomNav({ actif = "profil" }) {
+  const liens = [
+    { href: "/dashboard/apprenant", label: "Accueil", key: "accueil", Icon: LayoutDashboard },
+    { href: "/dashboard/apprenant/formations", label: "Formations", key: "formations", Icon: BookOpen },
+    { href: "/dashboard/apprenant/quiz", label: "Quiz", key: "quiz", Icon: FileText },
+    { href: "/dashboard/apprenant/resultats", label: "Résultats", key: "resultats", Icon: BarChart3 },
+    { href: "/dashboard/apprenant/certificats", label: "Certificats", key: "certificats", Icon: Trophy },
+    { href: "/dashboard/apprenant/profil", label: "Profil", key: "profil", Icon: User },
+  ];
+
   return (
     <nav className={styles.bottomNav}>
-      <Link href="/dashboard/apprenant" className={actif === "accueil" ? styles.active : ""}>
-        <span>🏠</span><span>Accueil</span>
-      </Link>
-      <Link href="/dashboard/apprenant/formations" className={actif === "formations" ? styles.active : ""}>
-        <span>📚</span><span>Formations</span>
-      </Link>
-      <Link href="/dashboard/apprenant/quiz" className={actif === "quiz" ? styles.active : ""}>
-        <span>📝</span><span>Quiz</span>
-      </Link>
-      <Link href="/dashboard/apprenant/resultats" className={actif === "resultats" ? styles.active : ""}>
-        <span>📊</span><span>Résultats</span>
-      </Link>
-      <Link href="/dashboard/apprenant/certificats" className={actif === "certificats" ? styles.active : ""}>
-        <span>🏆</span><span>Certificats</span>
-      </Link>
-      <Link href="/dashboard/apprenant/profil" className={actif === "profil" ? styles.active : ""}>
-        <span>👤</span><span>Profil</span>
-      </Link>
+      {liens.map(({ href, label, key, Icon }) => (
+        <Link key={key} href={href} className={actif === key ? styles.active : ""}>
+          <span className={styles.navIconWrap}>
+            <Icon size={22} strokeWidth={actif === key ? 2.4 : 1.8} />
+            {actif === key && <span className={styles.navDot} />}
+          </span>
+          <span className={styles.navLabel}>{label}</span>
+        </Link>
+      ))}
     </nav>
   );
 }
@@ -68,7 +72,6 @@ export default function ProfilPage() {
         if (!res.ok) throw new Error(data.message || "Erreur");
         setUtilisateur(data.utilisateur || {});
         setStatistiques(data.statistiques || {});
-        // Pré-remplir le formulaire avec les vraies données
         setFormulaire({
           nom: data.utilisateur?.nom || "",
           prenom: data.utilisateur?.prenom || "",
@@ -134,12 +137,10 @@ export default function ProfilPage() {
         prenom: formulaire.prenom.trim(),
         email: formulaire.email.trim(),
       };
-      // Mot de passe seulement si rempli
       if (formulaire.motDePasse.trim()) corps.motDePasse = formulaire.motDePasse.trim();
 
       if (!corps.nom || !corps.prenom || !corps.email) throw new Error("Nom, prénom et email sont obligatoires.");
 
-      // Essaie les 2 routes possibles, la 1ère qui marche gagne
       const routes = [`${API}/profil`, `${API}/utilisateurs/me`, `${API}/dashboard/profil`];
       let derniereErreur = null;
       let reussi = false;
@@ -158,7 +159,6 @@ export default function ProfilPage() {
             reussi = true;
             break;
           }
-          // 404 = route n'existe pas, on essaie la suivante
           if (res.status === 404) { derniereErreur = new Error("Route profil non trouvée sur le backend"); continue; }
           throw new Error(data.message || data.error || "Impossible de modifier le profil.");
         } catch (err) {
@@ -188,7 +188,10 @@ export default function ProfilPage() {
   if (chargement) {
     return (
       <main className={styles.page}>
-        <div className={styles.loading}>Chargement...</div>
+        <div className={styles.loading}>
+          <div className={styles.spinner}></div>
+          <p>Chargement de ton profil...</p>
+        </div>
         <BottomNav actif="profil" />
       </main>
     );
@@ -201,7 +204,7 @@ export default function ProfilPage() {
   return (
     <main className={styles.page}>
       <div className={styles.container}>
-        {/* ===== TOP BAR FIXÉE ===== */}
+        {/* ===== TOP BAR FIXÉE - PRO ===== */}
         <header className={styles.topBar}>
           <Link href="/dashboard/apprenant" className={styles.back}>
             <ArrowLeft size={18} /> Retour
@@ -221,6 +224,14 @@ export default function ProfilPage() {
         {erreur && <div className={styles.errorNotice}>{erreur}</div>}
         {message && <div className={styles.successNotice}>{message}</div>}
 
+        {/* ===== COUVERTURE FACEBOOK ===== */}
+        <div className={styles.cover}>
+          <div className={styles.coverInner}>
+            <span className={styles.coverLogo}>L</span>
+            <span>LEARNING PRO</span>
+          </div>
+        </div>
+
         <div className={styles.card}>
           <div className={styles.header}>
             <div className={styles.photoWrap}>
@@ -229,13 +240,13 @@ export default function ProfilPage() {
               ) : (
                 <div className={styles.avatar}>{initiale}</div>
               )}
-              <button type="button" className={styles.camera} onClick={() => fileRef.current?.click()}>
+              <button type="button" className={styles.camera} onClick={() => fileRef.current?.click()} aria-label="Changer la photo">
                 <Camera size={16} />
               </button>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={changerPhoto} />
             </div>
             <h1>{nomComplet || "Apprenant"}</h1>
-            <span className={styles.role}>Apprenant</span>
+            <span className={styles.role}>Apprenant • Learning Pro</span>
             <p>Clique sur l&apos;icône caméra pour changer ta photo de profil.</p>
 
             {!enEdition && (
@@ -245,28 +256,29 @@ export default function ProfilPage() {
             )}
           </div>
 
-          {/* ===== FORMULAIRE MODIFIER ===== */}
           {enEdition ? (
             <form className={styles.form} onSubmit={sauvegarderProfil}>
-              <div className={styles.field}>
-                <label>Nom</label>
-                <input
-                  type="text"
-                  value={formulaire.nom}
-                  onChange={(e) => setFormulaire((f) => ({ ...f, nom: e.target.value }))}
-                  placeholder="Ton nom"
-                  required
-                />
-              </div>
-              <div className={styles.field}>
-                <label>Prénom</label>
-                <input
-                  type="text"
-                  value={formulaire.prenom}
-                  onChange={(e) => setFormulaire((f) => ({ ...f, prenom: e.target.value }))}
-                  placeholder="Ton prénom"
-                  required
-                />
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <label>Nom</label>
+                  <input
+                    type="text"
+                    value={formulaire.nom}
+                    onChange={(e) => setFormulaire((f) => ({ ...f, nom: e.target.value }))}
+                    placeholder="Ton nom"
+                    required
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label>Prénom</label>
+                  <input
+                    type="text"
+                    value={formulaire.prenom}
+                    onChange={(e) => setFormulaire((f) => ({ ...f, prenom: e.target.value }))}
+                    placeholder="Ton prénom"
+                    required
+                  />
+                </div>
               </div>
               <div className={styles.field}>
                 <label>Email</label>
@@ -298,36 +310,43 @@ export default function ProfilPage() {
               </div>
             </form>
           ) : (
-            <div className={styles.infos}>
-              <div className={styles.row}>
-                <User size={20} />
-                <div><small>Nom</small><strong>{utilisateur?.nom || "-"}</strong></div>
+            <>
+              <div className={styles.statsRow}>
+                <div className={styles.statMini}><strong>{statistiques.nombreFormations ?? 0}</strong><span>Formations</span></div>
+                <div className={styles.statMini}><strong>{statistiques.tentativesTerminees ?? 0}</strong><span>Quiz terminés</span></div>
+                <div className={styles.statMini}><strong>{statistiques.nombreCertificats ?? 0}</strong><span>Certificats</span></div>
               </div>
-              <div className={styles.row}>
-                <User size={20} />
-                <div><small>Prénom</small><strong>{utilisateur?.prenom || "-"}</strong></div>
+
+              <div className={styles.infos}>
+                <div className={styles.row}>
+                  <span className={styles.rowIcon}><User size={20} /></span>
+                  <div><small>Nom</small><strong>{utilisateur?.nom || "-"}</strong></div>
+                </div>
+                <div className={styles.row}>
+                  <span className={styles.rowIcon}><User size={20} /></span>
+                  <div><small>Prénom</small><strong>{utilisateur?.prenom || "-"}</strong></div>
+                </div>
+                <div className={styles.row}>
+                  <span className={styles.rowIcon}><Mail size={20} /></span>
+                  <div><small>Email</small><strong>{utilisateur?.email || "-"}</strong></div>
+                </div>
+                <div className={styles.row}>
+                  <span className={styles.rowIcon}><BookOpen size={20} /></span>
+                  <div><small>Formations</small><strong>{statistiques.nombreFormations ?? 0}</strong></div>
+                </div>
+                <div className={styles.row}>
+                  <span className={styles.rowIcon}><FileText size={20} /></span>
+                  <div><small>Quiz terminés</small><strong>{statistiques.tentativesTerminees ?? 0}</strong></div>
+                </div>
+                <div className={styles.row}>
+                  <span className={styles.rowIcon}><Trophy size={20} /></span>
+                  <div><small>Certificats</small><strong>{statistiques.nombreCertificats ?? 0}</strong></div>
+                </div>
               </div>
-              <div className={styles.row}>
-                <Mail size={20} />
-                <div><small>Email</small><strong>{utilisateur?.email || "-"}</strong></div>
-              </div>
-              <div className={styles.row}>
-                <BookOpen size={20} />
-                <div><small>Formations</small><strong>{statistiques.nombreFormations ?? 0}</strong></div>
-              </div>
-              <div className={styles.row}>
-                <FileText size={20} />
-                <div><small>Quiz terminés</small><strong>{statistiques.tentativesTerminees ?? 0}</strong></div>
-              </div>
-              <div className={styles.row}>
-                <Trophy size={20} />
-                <div><small>Certificats</small><strong>{statistiques.nombreCertificats ?? 0}</strong></div>
-              </div>
-            </div>
+            </>
           )}
         </div>
 
-        {/* ===== ACTIONS BAS ===== */}
         <div className={styles.bottomActions}>
           <button type="button" className={styles.logoutBtn} onClick={deconnecter}>
             <LogOut size={16} /> Se déconnecter
