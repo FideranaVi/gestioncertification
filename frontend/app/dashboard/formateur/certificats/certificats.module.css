@@ -1,4 +1,4 @@
-/* ===== CERTIFICATS FORMATEUR - BLEU 【entity-FACEBOOK¦canonical_name=Facebook】 + TABLEAU ===== */
+/* ===== CERTIFICATS FORMATEUR - BLEU 【entity-FACEBOOK¦canonical_name=FACEBOOK】 + TABLEAU TENTATIVES ===== */
 .page { min-height: 100vh; padding: 0 0 90px; color: #1c1e21; background: #f0f2f5; overflow-x: hidden; }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
@@ -12,7 +12,7 @@
 .backButton:active { transform: scale(0.95); }
 .pageTitle { font-size: 17px; font-weight: 900; }
 .topBarSpacer { margin-left: auto; }
-.container { max-width: 1100px; margin: 0 auto; padding: 28px 24px 0; }
+.container { max-width: 1180px; margin: 0 auto; padding: 28px 24px 0; }
 
 /* Header */
 .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 22px; animation: fadeUp 0.5s ease; }
@@ -20,7 +20,7 @@
 .header h1 { font-size: clamp(28px, 4vw, 38px); line-height: 1.05; font-weight: 900; letter-spacing: -0.8px; margin: 0 0 12px; }
 .header h1::after { content: ""; display: block; width: 56px; height: 5px; margin-top: 14px; border-radius: 999px; background: linear-gradient(90deg, #1877f2, #42a5f5); }
 .header h1 span { color: #1877f2; }
-.header p { color: #65676b; font-size: 15px; line-height: 1.6; margin: 0; }
+.header p { color: #65676b; font-size: 15px; line-height: 1.6; margin: 0; max-width: 720px; }
 .refreshButton { flex-shrink: 0; background: #1877f2; color: #fff; border: none; border-radius: 999px; padding: 12px 20px; font-size: 13.5px; font-weight: 850; cursor: pointer; box-shadow: 0 8px 20px rgba(24,119,242,0.32); transition: all 0.22s ease; }
 .refreshButton:hover { background: #166fe5; transform: translateY(-2px); }
 .refreshButton:active { animation: likePop 0.4s ease; }
@@ -34,15 +34,17 @@
 .loadingContainer { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
 .spinner { width: 36px; height: 36px; border: 3px solid #dbe7fd; border-top-color: #1877f2; border-radius: 50%; animation: spin 0.8s linear infinite; }
 
-/* Summary */
-.summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; animation: fadeUp 0.55s ease; }
+/* Summary - 5 stats */
+.summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; animation: fadeUp 0.55s ease; }
 .summaryStat { background: #fff; border: 1px solid #dddfe2; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 5px; transition: all 0.2s ease; }
 .summaryStat:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(24,119,242,0.12); }
 .summaryStat span { font-size: 11px; color: #65676b; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
 .summaryStat strong { font-size: 26px; line-height: 1; }
-.summaryStat:nth-child(1) strong { color: #1877f2; }
+.summaryStat:nth-child(1) strong { color: #1c1e21; }
 .summaryStat:nth-child(2) strong { color: #42b72a; }
-.summaryStat:nth-child(3) strong { color: #e0245e; }
+.summaryStat:nth-child(3) strong { color: #1877f2; }
+.summaryStat:nth-child(4) strong { color: #2e7d32; }
+.summaryStat:nth-child(5) strong { color: #e0245e; }
 
 /* Toolbar + Filtres + Recherche */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; animation: fadeUp 0.55s ease; }
@@ -54,18 +56,29 @@
 .searchWrap { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #dddfe2; border-radius: 999px; padding: 9px 14px; flex: 1; min-width: 220px; max-width: 360px; }
 .searchInput { border: none; outline: none; background: transparent; font-size: 13.5px; width: 100%; }
 
-/* Tableau */
+/* Tableau - Apprenants + Tentatives */
 .tableWrap { background: #fff; border: 1px solid #dddfe2; border-radius: 14px; overflow-x: auto; box-shadow: 0 1px 4px rgba(0,0,0,0.04); animation: fadeUp 0.6s ease; }
-.table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.table { width: 100%; border-collapse: collapse; min-width: 980px; }
 .table thead th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #65676b; padding: 14px 16px; background: #f0f2f5; border-bottom: 1px solid #dddfe2; white-space: nowrap; }
 .table tbody td { padding: 14px 16px; font-size: 13.5px; border-bottom: 1px solid #f0f2f5; vertical-align: middle; }
 .table tbody tr:last-child td { border-bottom: none; }
 .table tbody tr:hover { background: #f5f8ff; }
+.subText { font-size: 12px; color: #65676b; font-weight: 400; }
 .refBadge { background: #f0f2f5; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+
+/* Badges - Resultat tentative */
+.resultBadge { padding: 6px 11px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; display: inline-block; }
+.resultOk { background: #e7f8e8; color: #2e7d32; border: 1px solid #c8e6c9; }
+.resultFail { background: #fdecea; color: #e0245e; border: 1px solid #ffd5d1; }
+.resultWait { background: #fef3e2; color: #e6850f; border: 1px solid #ffe0a3; }
+
+/* Badges - Statut certificat */
 .verifiedBadge { padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; display: inline-block; }
 .badgeAttente { background: #e7f0fe; color: #1877f2; border: 1px solid #bcd8fb; }
 .badgeValide { background: #e7f8e8; color: #2e7d32; border: 1px solid #c8e6c9; }
 .badgeRefuse { background: #fdecea; color: #e0245e; border: 1px solid #ffd5d1; }
+
+/* Actions */
 .tableActions { display: flex; gap: 8px; }
 .validateButton { background: #1877f2; color: #fff; border: none; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 850; cursor: pointer; white-space: nowrap; transition: all 0.2s ease; }
 .validateButton:hover:not(:disabled) { background: #166fe5; }
@@ -74,7 +87,7 @@
 .refuseButton { background: #fff; color: #e0245e; border: 1px solid #ffd5d1; border-radius: 999px; padding: 8px 14px; font-size: 12.5px; font-weight: 850; cursor: pointer; white-space: nowrap; transition: all 0.2s ease; }
 .refuseButton:hover:not(:disabled) { background: #fdecea; }
 .refuseButton:disabled { opacity: 0.6; cursor: not-allowed; }
-.actionDone { font-size: 12.5px; color: #8a8d91; font-weight: 600; }
+.actionDone { font-size: 12.5px; color: #8a8d91; font-weight: 600; white-space: nowrap; }
 .tableHint { color: #8a8d91; font-size: 12.5px; margin-top: 10px; }
 .empty { background: #fff; border: 1px solid #dddfe2; border-radius: 14px; padding: 44px 20px; text-align: center; }
 .empty h3 { margin: 0 0 6px; }
@@ -86,6 +99,9 @@
 .bottomNavLink:hover { color: #1877f2; background: #e7f0fe; }
 .bottomNavActive { color: #1877f2; background: #e7f0fe; font-weight: 900; }
 
+@media (max-width: 900px) {
+  .summary { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 760px) {
   .container { padding: 20px 14px 0; }
   .header { flex-direction: column; }
