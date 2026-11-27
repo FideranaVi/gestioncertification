@@ -10,7 +10,6 @@ import {
   FileText,
   CheckCircle2,
   Trophy,
-  BarChart3,
   GraduationCap,
   ArrowRight,
   User,
@@ -284,7 +283,7 @@ export default function FormateurDashboard() {
 
   return (
     <div className={styles.dashboard}>
-      {/* SIDEBAR PC */}
+      {/* SIDEBAR PC - SANS RÉSULTATS */}
       <aside className={styles.sidebar}>
         <Link href="/dashboard/formateur" className={styles.logo}><span className={styles.logoIcon}>L</span><span>LEARNING <strong>PRO</strong></span></Link>
         <div className={styles.sidebarLabel}>MENU PRINCIPAL</div>
@@ -294,7 +293,6 @@ export default function FormateurDashboard() {
           <Link href="/dashboard/formateur/modules" className={styles.navLink}><Layers size={20} /> Mes modules</Link>
           <Link href="/dashboard/formateur/quiz" className={styles.navLink}><FileText size={20} /> Quiz et évaluations</Link>
           <Link href="/dashboard/formateur/tentatives" className={styles.navLink}><Clock size={20} /> Tentatives des apprenants</Link>
-          <Link href="/dashboard/formateur/resultats" className={styles.navLink}><BarChart3 size={20} /> Résultats</Link>
           <Link href="/dashboard/formateur/certificats" className={styles.navLink}><Trophy size={20} /> Certifications</Link>
           <Link href="/dashboard/formateur/profil" className={styles.navLink}><User size={20} /> Mon profil</Link>
         </nav>
@@ -352,7 +350,6 @@ export default function FormateurDashboard() {
             <article className={styles.statCard}><div className={`${styles.statIcon} ${styles.orangeIcon}`}><Award size={22} /></div><div><span>Certificats à examiner</span><strong>{certificatsEnAttente.length}</strong><small>Demandes en attente</small></div></article>
           </section>
 
-          {/* FORMULAIRE CRÉATION - reste sur dashboard, liste complète = page Formations */}
           {afficherFormFormation && (
             <form className={styles.creationForm} onSubmit={creerFormation}>
               <div className={styles.formHeading}><div><h3>Créer une formation</h3><p>Renseignez les informations de votre nouvelle formation.</p></div><button type="button" className={styles.closeButton} onClick={() => setAfficherFormFormation(false)}>×</button></div>
@@ -366,20 +363,18 @@ export default function FormateurDashboard() {
             </form>
           )}
 
-          {/* ACCÈS RAPIDE - CHAQUE CARTE = SA PROPRE PAGE */}
+          {/* ACCÈS RAPIDE - SANS RÉSULTATS */}
           <section className={styles.quickSection}>
             <div className={styles.sectionHeading}><div><span className={styles.sectionEyebrow}>ACCÈS RAPIDE</span><h2>Gérer mes activités</h2></div></div>
             <div className={styles.quickGrid}>
               <Link href="/dashboard/formateur/formations" className={styles.quickCard}><div className={styles.quickIcon}><BookOpen size={22} /></div><div><strong>Mes formations</strong><span>{formations.length} formation(s) — créer, voir, modifier</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
               <Link href="/dashboard/formateur/modules" className={styles.quickCard}><div className={styles.quickIcon}><Layers size={22} /></div><div><strong>Gérer les modules</strong><span>Organiser les contenus de vos formations</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
               <Link href="/dashboard/formateur/quiz" className={styles.quickCard}><div className={styles.quickIcon}><FileText size={22} /></div><div><strong>Créer un quiz</strong><span>Préparer des évaluations pour les apprenants</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
-              <Link href="/dashboard/formateur/tentatives" className={styles.quickCard}><div className={styles.quickIcon}><Clock size={22} /></div><div><strong>Suivre les tentatives</strong><span>Voir qui a passé les quiz et combien de fois</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
-              <Link href="/dashboard/formateur/resultats" className={styles.quickCard}><div className={styles.quickIcon}><BarChart3 size={22} /></div><div><strong>Consulter les résultats</strong><span>{tentativesTerminees.length} terminée(s) · {tentativesReussies.length} réussie(s)</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
+              <Link href="/dashboard/formateur/tentatives" className={styles.quickCard}><div className={styles.quickIcon}><Clock size={22} /></div><div><strong>Suivre les tentatives</strong><span>Voir qui a passé les quiz et combien de fois — résultats inclus</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
               <Link href="/dashboard/formateur/certificats" className={styles.quickCard}><div className={styles.quickIcon}><Trophy size={22} /></div><div><strong>Certifications</strong><span>{certificatsEnAttente.length} en attente · {certificatsValides.length} validé(s)</span></div><span className={styles.quickArrow}><ArrowRight size={18} /></span></Link>
             </div>
           </section>
 
-          {/* APERÇU FORMATIONS - 3 dernières, le reste = page Formations */}
           <section className={styles.formationsSection}>
             <div className={styles.sectionHeading}>
               <div><span className={styles.sectionEyebrow}>VOTRE CONTENU</span><h2>Aperçu de mes formations</h2><p>Les 3 dernières. La liste complète est sur la page Formations.</p></div>
@@ -416,7 +411,6 @@ export default function FormateurDashboard() {
             )}
           </section>
 
-          {/* APERÇU TENTATIVES RÉCENTES */}
           <section className={styles.formationsSection}>
             <div className={styles.sectionHeading}><div><span className={styles.sectionEyebrow}>SUIVI DES APPRENANTS</span><h2>Dernières tentatives</h2><p>{nombreEnLigne} en ligne · {nombreHorsLigne} hors ligne — mise à jour toutes les 5 secondes</p></div><Link href="/dashboard/formateur/tentatives" className={styles.primaryButton}>Tout voir →</Link></div>
             <div className={styles.lessonList}>
@@ -436,7 +430,6 @@ export default function FormateurDashboard() {
         </div>
       </main>
 
-      {/* BOTTOM NAV TÉLÉPHONE */}
       <nav className={styles.bottomNav}>
         <Link href="/dashboard/formateur" className={`${styles.bottomNavLink} ${styles.active}`}><LayoutDashboard size={20} /><span>Accueil</span></Link>
         <Link href="/dashboard/formateur/formations" className={styles.bottomNavLink}><BookOpen size={20} /><span>Formations</span></Link>
@@ -445,7 +438,6 @@ export default function FormateurDashboard() {
         <Link href="/dashboard/formateur/certificats" className={styles.bottomNavLink}><Trophy size={20} /><span>Certificats</span></Link>
       </nav>
 
-      {/* POPUP PROFIL */}
       {showProfil && (
         <div className={styles.profilOverlay} onClick={() => setShowProfil(false)}>
           <div className={styles.profilModal} onClick={(e) => e.stopPropagation()}>
