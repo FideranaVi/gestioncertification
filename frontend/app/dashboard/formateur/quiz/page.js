@@ -83,7 +83,7 @@ function obtenirFormation(quiz) {
   };
 }
 
-function estQuizFinal(quiz) {
+function estQuiz(quiz) {
   const type = String(quiz.typeQuiz || "").trim().toLowerCase();
   if (type) {
     return type === "final";
@@ -230,7 +230,7 @@ export default function GestionQuizPage() {
         if (signal.aborted || ignore) return;
 
         const liste = extraireQuiz(data);
-        setQuiz(liste.filter(estQuizFinal));
+        setQuiz(liste.filter(estQuiz));
         setErreur("");
       } catch (error) {
         if (error?.name === "AbortError" || signal.aborted || ignore) return;
@@ -336,12 +336,12 @@ export default function GestionQuizPage() {
               <span className={styles.eyebrowDot} />
               ESPACE FORMATEUR
             </div>
-            <h1 className={styles.title}>Gestion des quiz finaux</h1>
-            <p className={styles.subtitle}>Gérez une évaluation finale pour chaque formation.</p>
+            <h1 className={styles.title}>Gestion des quiz</h1>
+            <p className={styles.subtitle}>Gérez un quiz pour chaque formation.</p>
           </div>
           <Link href="/dashboard/formateur/quiz/creer" className={styles.createButton}>
             <Icon name="plus" size={19} />
-            Créer un quiz final
+            Créer un quiz
           </Link>
         </header>
 
@@ -363,7 +363,7 @@ export default function GestionQuizPage() {
             <div className={styles.statInfo}>
               <span className={styles.statLabel}>Total des quiz</span>
               <strong className={styles.statValue}>{chargement ? "—" : totalQuiz}</strong>
-              <span className={styles.statDescription}>Évaluations finales créées</span>
+              <span className={styles.statDescription}>Quiz créés</span>
             </div>
           </article>
 
@@ -374,7 +374,7 @@ export default function GestionQuizPage() {
             <div className={styles.statInfo}>
               <span className={styles.statLabel}>Formations concernées</span>
               <strong className={styles.statValue}>{chargement ? "—" : totalFormations}</strong>
-              <span className={styles.statDescription}>Formations avec une évaluation</span>
+              <span className={styles.statDescription}>Formations avec un quiz</span>
             </div>
           </article>
 
@@ -388,7 +388,7 @@ export default function GestionQuizPage() {
                 {chargement ? "—" : dureeTotale}
                 {!chargement && <small> min</small>}
               </strong>
-              <span className={styles.statDescription}>Temps total des évaluations</span>
+              <span className={styles.statDescription}>Temps total des quiz</span>
             </div>
           </article>
         </section>
@@ -396,8 +396,8 @@ export default function GestionQuizPage() {
         <section className={styles.contentSection}>
           <div className={styles.sectionHeader}>
             <div>
-              <h2 className={styles.sectionTitle}>Évaluations par formation</h2>
-              <p className={styles.sectionSubtitle}>Chaque formation possède son propre quiz final.</p>
+              <h2 className={styles.sectionTitle}>Quiz par formation</h2>
+              <p className={styles.sectionSubtitle}>Chaque formation possède son propre quiz.</p>
             </div>
             <button type="button" className={styles.refreshButton} onClick={actualiser} disabled={chargement}>
               <span className={chargement ? styles.spinning : ""}>
@@ -445,11 +445,11 @@ export default function GestionQuizPage() {
               <div className={styles.emptyIcon}>
                 <Icon name="empty" size={34} />
               </div>
-              <h3>{recherche ? "Aucun résultat trouvé" : "Aucun quiz final pour le moment"}</h3>
+              <h3>{recherche ? "Aucun résultat trouvé" : "Aucun quiz pour le moment"}</h3>
               <p>
                 {recherche
                   ? "Essayez avec un autre nom de formation ou de quiz."
-                  : "Créez une évaluation finale pour l'une de vos formations."}
+                  : "Créez un quiz pour l'une de vos formations."}
               </p>
               {recherche ? (
                 <button type="button" className={styles.emptyButton} onClick={() => setRecherche("")}>
@@ -474,7 +474,7 @@ export default function GestionQuizPage() {
                       </div>
                       <h2 className={styles.sectionTitle}>{formation.titre}</h2>
                       <p className={styles.sectionSubtitle}>
-                        {formation.quizzes.length} quiz final{formation.quizzes.length > 1 ? "s" : ""}
+                        {formation.quizzes.length} quiz{formation.quizzes.length > 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
@@ -490,7 +490,7 @@ export default function GestionQuizPage() {
                           <div className={styles.quizSymbol}>
                             <Icon name="quiz" size={23} />
                           </div>
-                          <span className={styles.quizBadge}>Quiz final</span>
+                          <span className={styles.quizBadge}>Quiz</span>
                         </div>
 
                         <div className={styles.quizBody}>
